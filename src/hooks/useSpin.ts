@@ -1,13 +1,18 @@
 import { useCallback, useRef, useState } from 'react'
 import { computeFinalRotation, easeOutQuint, pickWinnerIndex, segmentAtPointer } from '../lib/wheelMath'
 
-const SPIN_DURATION_MS = 6500
+export const DEFAULT_SPIN_DURATION_MS = 6500
 
 interface UseSpinOptions {
   onTick?: (segmentIndex: number) => void
 }
 
-export function useSpin(entryCount: number, draw: (rotation: number) => void, options: UseSpinOptions = {}) {
+export function useSpin(
+  entryCount: number,
+  draw: (rotation: number) => void,
+  durationMs: number = DEFAULT_SPIN_DURATION_MS,
+  options: UseSpinOptions = {},
+) {
   const rotationRef = useRef(0)
   const spinningRef = useRef(false)
   const [isSpinning, setIsSpinning] = useState(false)
@@ -37,7 +42,7 @@ export function useSpin(entryCount: number, draw: (rotation: number) => void, op
       const frame = (t: number) => {
         if (startTime === null) startTime = t
         const elapsed = t - startTime
-        const progress = Math.min(elapsed / SPIN_DURATION_MS, 1)
+        const progress = Math.min(elapsed / durationMs, 1)
         const current = start + (final - start) * easeOutQuint(progress)
         rotationRef.current = current
         draw(current)
@@ -59,7 +64,7 @@ export function useSpin(entryCount: number, draw: (rotation: number) => void, op
 
       requestAnimationFrame(frame)
     })
-  }, [entryCount, draw])
+  }, [entryCount, draw, durationMs])
 
   return { spin, isSpinning, rotation: rotationRef }
 }

@@ -18,6 +18,8 @@ export interface SpinlySettings {
   centerLogo: string | null
   muted: boolean
   removeWinnerAfterSpin: boolean
+  title: string
+  spinDurationMs: number
 }
 
 export interface SpinlyState {
@@ -33,4 +35,6 @@ export const DEFAULT_SETTINGS: SpinlySettings = {
   centerLogo: null,
   muted: false,
   removeWinnerAfterSpin: false,
+  title: '',
+  spinDurationMs: 6500,
 }

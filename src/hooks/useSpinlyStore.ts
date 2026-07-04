@@ -46,6 +46,12 @@ export function useSpinlyStore() {
     setState((s) => ({ ...s, entries: [...s.entries, ...newEntries] }))
   }, [])
 
+  const addEntriesWithImages = useCallback((items: Array<{ name: string; image: string }>) => {
+    if (items.length === 0) return
+    const newEntries: Entry[] = items.map(({ name, image }) => ({ id: makeId(), name, image }))
+    setState((s) => ({ ...s, entries: [...s.entries, ...newEntries] }))
+  }, [])
+
   const updateEntry = useCallback((id: string, patch: Partial<Entry>) => {
     setState((s) => ({ ...s, entries: s.entries.map((e) => (e.id === id ? { ...e, ...patch } : e)) }))
   }, [])
@@ -91,6 +97,7 @@ export function useSpinlyStore() {
     history: state.history,
     storageError,
     addEntries,
+    addEntriesWithImages,
     updateEntry,
     removeEntry,
     setEntries,

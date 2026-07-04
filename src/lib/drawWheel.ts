@@ -11,7 +11,7 @@ interface DrawWheelOptions {
   avatarImages?: Map<string, HTMLImageElement>
 }
 
-const AVATAR_MIN_ARC_PX = 30
+const MIN_AVATAR_RADIUS_PX = 10
 
 export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions) {
   const { entries, rotation, colors, pointerColor, size, pixelRatio = 1, centerImage, avatarImages } = opts
@@ -31,8 +31,11 @@ export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions)
     ctx.fill()
   } else {
     const segmentAngle = (Math.PI * 2) / n
-    const avatarCenterR = radius * 0.66
-    const arcAtAvatarR = segmentAngle * avatarCenterR
+    // Largest circle inscribed in the wedge, tangent to the outer rim and
+    // both straight edges — sits right at the wide end of the slice.
+    const halfAngle = segmentAngle / 2
+    const sinHalf = Math.sin(halfAngle)
+    const maxAvatarRadius = (radius * sinHalf) / (1 + sinHalf)
 
     ctx.save()
     ctx.translate(cx, cy)
@@ -52,18 +55,18 @@ export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions)
       ctx.rotate(start + segmentAngle / 2)
 
       const avatarImg = entries[i].image ? avatarImages?.get(entries[i].image!) : undefined
-      const showAvatar = !!avatarImg && arcAtAvatarR >= AVATAR_MIN_ARC_PX
+      const showAvatar = !!avatarImg && maxAvatarRadius >= MIN_AVATAR_RADIUS_PX
       let textX = radius - 12
 
       if (showAvatar && avatarImg) {
-        const avatarDiameter = Math.min(40, arcAtAvatarR * 0.85)
-        const avatarR = avatarDiameter / 2
+        const avatarR = maxAvatarRadius * 0.96
+        const avatarCenterR = radius - avatarR - 2
         ctx.save()
         ctx.beginPath()
         ctx.arc(avatarCenterR, 0, avatarR, 0, Math.PI * 2)
         ctx.closePath()
         ctx.clip()
-        ctx.drawImage(avatarImg, avatarCenterR - avatarR, -avatarR, avatarDiameter, avatarDiameter)
+        ctx.drawImage(avatarImg, avatarCenterR - avatarR, -avatarR, avatarR * 2, avatarR * 2)
         ctx.restore()
         ctx.beginPath()
         ctx.arc(avatarCenterR, 0, avatarR, 0, Math.PI * 2)
