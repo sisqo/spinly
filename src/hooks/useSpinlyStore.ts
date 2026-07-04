@@ -2,19 +2,15 @@ import { useCallback, useEffect, useState } from 'react'
 import type { Entry, SpinlyState, WinnerRecord } from '../types'
 import { DEFAULT_SETTINGS } from '../types'
 import { makeId } from '../lib/id'
+import { createSampleEntries } from '../lib/sampleEntries'
 import { cryptoRandom01 } from '../lib/wheelMath'
 
 const STORAGE_KEY = 'spinly-state-v1'
 
-const SAMPLE_ENTRIES: Entry[] = ['Alice', 'Bob', 'Charlie', 'Diana', 'Ethan'].map((name) => ({
-  id: makeId(),
-  name,
-}))
-
 function loadState(): SpinlyState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return { entries: SAMPLE_ENTRIES, settings: DEFAULT_SETTINGS, history: [], removedEntries: [] }
+    if (!raw) return { entries: createSampleEntries(), settings: DEFAULT_SETTINGS, history: [], removedEntries: [] }
     const parsed = JSON.parse(raw)
     return {
       entries: Array.isArray(parsed.entries) ? parsed.entries : [],

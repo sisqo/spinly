@@ -155,11 +155,13 @@ function App() {
         }`}
       >
         <header className="flex w-full items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/spinly-logo.svg" alt="" className="h-11 w-11" />
-            <h1 className="text-2xl font-bold tracking-tight">Spinly</h1>
-          </div>
-          <div className="flex gap-2">
+          {!store.settings.hideBranding && (
+            <div className="flex items-center gap-3">
+              <img src="/spinly-logo.svg" alt="" className="h-11 w-11" />
+              <h1 className="text-2xl font-bold tracking-tight">Spinly</h1>
+            </div>
+          )}
+          <div className="flex gap-2 ms-auto">
             <button
               type="button"
               onClick={handleToggleMute}
@@ -286,6 +288,15 @@ function App() {
                       className="w-full"
                     />
                   </div>
+                  <label className="flex items-center gap-2 text-sm text-neutral-300">
+                    <input
+                      type="checkbox"
+                      checked={store.settings.hideBranding}
+                      onChange={(e) => store.updateSettings({ hideBranding: e.target.checked })}
+                      className="h-4 w-4 rounded border-neutral-600 bg-neutral-800 accent-white"
+                    />
+                    Hide logo and title
+                  </label>
                   <ThemePanel settings={store.settings} onUpdateSettings={store.updateSettings} />
                   <BackgroundLogoUpload settings={store.settings} onUpdateSettings={store.updateSettings} />
                 </div>

@@ -21,6 +21,7 @@ export interface SpinlySettings {
   title: string
   spinDurationMs: number
   labelFontScale: number
+  hideBranding: boolean
 }
 
 export interface SpinlyState {
@@ -40,4 +41,5 @@ export const DEFAULT_SETTINGS: SpinlySettings = {
   title: '',
   spinDurationMs: 6500,
   labelFontScale: 1,
+  hideBranding: false,
 }

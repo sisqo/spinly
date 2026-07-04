@@ -1,6 +1,13 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="140 95 320 320"><defs><mask id="m0" maskUnits="userSpaceOnUse" x="140" y="95" width="320" height="320"><rect x="140" y="95" width="320" height="320" fill="white"/><path d="M 326,143 A 68 68 0 0 1 326,279 L 326,315" fill="none" stroke="black" stroke-width="42"/><circle cx="300" cy="255" r="21" fill="black"/></mask><mask id="m1" maskUnits="userSpaceOnUse" x="140" y="95" width="320" height="320"><rect x="140" y="95" width="320" height="320" fill="white"/><path d="M 412,281 A 68 68 0 0 1 276,281 L 240,281" fill="none" stroke="black" stroke-width="42"/><circle cx="300" cy="255" r="21" fill="black"/></mask><mask id="m2" maskUnits="userSpaceOnUse" x="140" y="95" width="320" height="320"><rect x="140" y="95" width="320" height="320" fill="white"/><path d="M 274,367 A 68 68 0 0 1 274,231 L 274,195" fill="none" stroke="black" stroke-width="42"/><circle cx="300" cy="255" r="21" fill="black"/></mask><mask id="m3" maskUnits="userSpaceOnUse" x="140" y="95" width="320" height="320"><rect x="140" y="95" width="320" height="320" fill="white"/><path d="M 188,229 A 68 68 0 0 1 324,229 L 360,229" fill="none" stroke="black" stroke-width="42"/><circle cx="300" cy="255" r="21" fill="black"/></mask></defs>
-<path d="M 188,229 A 68 68 0 0 1 324,229 L 360,229" fill="none" stroke="#EA5B2D" stroke-width="26" mask="url(#m0)"/>
-<path d="M 326,143 A 68 68 0 0 1 326,279 L 326,315" fill="none" stroke="#5B43A9" stroke-width="26" mask="url(#m1)"/>
-<path d="M 412,281 A 68 68 0 0 1 276,281 L 240,281" fill="none" stroke="#EA5B2D" stroke-width="26" mask="url(#m2)"/>
-<path d="M 274,367 A 68 68 0 0 1 274,231 L 274,195" fill="none" stroke="#5B43A9" stroke-width="26" mask="url(#m3)"/>
-<circle cx="300" cy="255" r="13" fill="#5B43A9"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
+<path d="M 100 100 L 100.000 12.000 A 88 88 0 0 1 162.225 37.775 Z" fill="#f43f5e"/>
+<path d="M 100 100 L 162.225 37.775 A 88 88 0 0 1 188.000 100.000 Z" fill="#3b82f6"/>
+<path d="M 100 100 L 188.000 100.000 A 88 88 0 0 1 162.225 162.225 Z" fill="#22c55e"/>
+<path d="M 100 100 L 162.225 162.225 A 88 88 0 0 1 100.000 188.000 Z" fill="#eab308"/>
+<path d="M 100 100 L 100.000 188.000 A 88 88 0 0 1 37.775 162.225 Z" fill="#a855f7"/>
+<path d="M 100 100 L 37.775 162.225 A 88 88 0 0 1 12.000 100.000 Z" fill="#06b6d4"/>
+<path d="M 100 100 L 12.000 100.000 A 88 88 0 0 1 37.775 37.775 Z" fill="#f97316"/>
+<path d="M 100 100 L 37.775 37.775 A 88 88 0 0 1 100.000 12.000 Z" fill="#14b8a6"/>
+<circle cx="100" cy="100" r="88" fill="none" stroke="#ffffff" stroke-opacity="0.85" stroke-width="6"/>
+<path d="M 89 8 L 111 8 L 100 20 Z" fill="#ffffff"/>
+<circle cx="100" cy="100" r="11" fill="#ffffff"/>
+</svg>

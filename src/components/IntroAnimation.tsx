@@ -50,8 +50,8 @@ export default function IntroAnimation({ onDone }: IntroAnimationProps) {
           100% { transform: scale(1) rotate(360deg); opacity: 1; }
         }
         @keyframes spinly-intro-pointer-drop {
-          from { transform: translateY(-8px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
+          from { transform: translate(-50%, -8px); opacity: 0; }
+          to { transform: translate(-50%, 0); opacity: 1; }
         }
         @keyframes spinly-intro-letter-in {
           from { transform: translateY(14px); opacity: 0; }
