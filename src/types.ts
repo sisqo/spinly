@@ -20,6 +20,7 @@ export interface SpinlySettings {
   removeWinnerAfterSpin: boolean
   title: string
   spinDurationMs: number
+  labelFontScale: number
 }
 
 export interface SpinlyState {
@@ -37,4 +38,5 @@ export const DEFAULT_SETTINGS: SpinlySettings = {
   removeWinnerAfterSpin: false,
   title: '',
   spinDurationMs: 6500,
+  labelFontScale: 1,
 }

@@ -6,10 +6,15 @@ import { cryptoRandom01 } from '../lib/wheelMath'
 
 const STORAGE_KEY = 'spinly-state-v1'
 
+const SAMPLE_ENTRIES: Entry[] = ['Alice', 'Bob', 'Charlie', 'Diana', 'Ethan'].map((name) => ({
+  id: makeId(),
+  name,
+}))
+
 function loadState(): SpinlyState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return { entries: [], settings: DEFAULT_SETTINGS, history: [] }
+    if (!raw) return { entries: SAMPLE_ENTRIES, settings: DEFAULT_SETTINGS, history: [] }
     const parsed = JSON.parse(raw)
     return {
       entries: Array.isArray(parsed.entries) ? parsed.entries : [],

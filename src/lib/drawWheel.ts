@@ -9,12 +9,33 @@ interface DrawWheelOptions {
   pixelRatio?: number
   centerImage?: HTMLImageElement
   avatarImages?: Map<string, HTMLImageElement>
+  labelFontScale?: number
+}
+
+function fitLabel(ctx: CanvasRenderingContext2D, name: string, maxWidth: number): string {
+  if (maxWidth <= 0) return ''
+  if (ctx.measureText(name).width <= maxWidth) return name
+  let label = name
+  while (label.length > 1 && ctx.measureText(`${label}…`).width > maxWidth) {
+    label = label.slice(0, -1)
+  }
+  return `${label}…`
 }
 
 const MIN_AVATAR_RADIUS_PX = 10
 
 export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions) {
-  const { entries, rotation, colors, pointerColor, size, pixelRatio = 1, centerImage, avatarImages } = opts
+  const {
+    entries,
+    rotation,
+    colors,
+    pointerColor,
+    size,
+    pixelRatio = 1,
+    centerImage,
+    avatarImages,
+    labelFontScale = 1,
+  } = opts
   const n = entries.length
   const cx = size / 2
   const cy = size / 2
@@ -76,11 +97,16 @@ export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions)
         textX = avatarCenterR - avatarR - 8
       }
 
+      const baseFontSize = showAvatar ? maxAvatarRadius * 0.96 * 0.6 : Math.min(radius * 0.16, 34)
+      const angleCapFontSize = 2 * radius * 0.4 * sinHalf
+      const fontSize = Math.max(8, Math.min(baseFontSize, angleCapFontSize) * labelFontScale)
+
       ctx.textAlign = 'right'
       ctx.textBaseline = 'middle'
       ctx.fillStyle = '#fff'
-      ctx.font = `${Math.max(12, Math.min(20, 300 / n))}px sans-serif`
-      const label = entries[i].name.length > 18 ? `${entries[i].name.slice(0, 17)}…` : entries[i].name
+      ctx.font = `${fontSize}px sans-serif`
+      const innerMargin = Math.max(8, radius * 0.04)
+      const label = fitLabel(ctx, entries[i].name, textX - innerMargin)
       ctx.fillText(label, textX, 0)
       ctx.restore()
     }

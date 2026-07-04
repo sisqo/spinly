@@ -146,13 +146,16 @@ function App() {
         : 'Click the wheel — or press Space'
 
   return (
-    <div className="flex min-h-screen flex-col text-white" style={pageStyle}>
+    <div className="flex min-h-dvh flex-col text-white" style={pageStyle}>
       {showIntro && <IntroAnimation onDone={handleIntroDone} />}
 
-      <div className="flex flex-1 flex-col gap-4 p-4 md:p-6">
+      <div className="flex h-dvh min-h-0 flex-col gap-4 p-4 md:p-6">
         {!isFullscreen && (
           <header className="flex w-full items-center justify-between">
-            <h1 className="text-2xl font-bold tracking-tight">Spinly</h1>
+            <div className="flex items-center gap-2">
+              <img src="/spinly-logo.svg" alt="" className="h-8 w-8" />
+              <h1 className="text-2xl font-bold tracking-tight">Spinly</h1>
+            </div>
             <div className="flex gap-2">
               <button
                 type="button"
@@ -192,6 +195,7 @@ function App() {
                 colors={activeColors}
                 pointerColor={activeTheme.pointerColor}
                 centerImageUrl={store.settings.centerLogo}
+                labelFontScale={store.settings.labelFontScale}
                 onActivate={handleSpin}
                 disabled={store.entries.length < 2 || isSpinning}
               />
@@ -250,6 +254,21 @@ function App() {
                     className="w-24 rounded-lg bg-neutral-800 px-3 py-2 text-sm text-white"
                   />
                 </div>
+                <div className="flex flex-col gap-1">
+                  <label htmlFor="spinly-font-scale" className="text-sm text-neutral-300">
+                    Label font size ({Math.round(store.settings.labelFontScale * 100)}%)
+                  </label>
+                  <input
+                    id="spinly-font-scale"
+                    type="range"
+                    min={0.5}
+                    max={2}
+                    step={0.1}
+                    value={store.settings.labelFontScale}
+                    onChange={(e) => store.updateSettings({ labelFontScale: parseFloat(e.target.value) })}
+                    className="w-full"
+                  />
+                </div>
                 <ThemePanel settings={store.settings} onUpdateSettings={store.updateSettings} />
                 <BackgroundLogoUpload settings={store.settings} onUpdateSettings={store.updateSettings} />
               </div>
@@ -261,10 +280,11 @@ function App() {
             </div>
           )}
         </div>
+      </div>
 
-        {!isFullscreen && <SeoBlurb />}
-
-        {!isFullscreen && (
+      {!isFullscreen && (
+        <div className="flex flex-col gap-4 p-4 md:p-6">
+          <SeoBlurb />
           <footer className="flex flex-col items-center gap-2 pt-2">
             <KofiButton />
             <p className="text-sm text-neutral-500">
@@ -279,8 +299,8 @@ function App() {
               </a>
             </p>
           </footer>
-        )}
-      </div>
+        </div>
+      )}
 
       <WinnerModal
         winner={winner}
