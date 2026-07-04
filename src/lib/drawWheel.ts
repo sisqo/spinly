@@ -23,6 +23,7 @@ function fitLabel(ctx: CanvasRenderingContext2D, name: string, maxWidth: number)
 }
 
 const MIN_AVATAR_RADIUS_PX = 10
+const MAX_AVATAR_RADIUS_FRACTION = 0.3
 
 export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions) {
   const {
@@ -59,6 +60,10 @@ export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions)
     const halfAngle = segmentAngle / 2
     const sinHalf = Math.sin(halfAngle)
     const maxAvatarRadius = (radius * sinHalf) / (1 + sinHalf)
+    // Cap the avatar so it never eats into the label space when there are
+    // only a few, wide segments (the tangent-circle formula alone would
+    // grow it toward radius/2 as segment count drops).
+    const avatarRadius = Math.min(maxAvatarRadius * 0.96, radius * MAX_AVATAR_RADIUS_FRACTION)
 
     ctx.save()
     ctx.translate(cx, cy)
@@ -78,37 +83,45 @@ export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions)
       ctx.rotate(start + segmentAngle / 2)
 
       const avatarImg = entries[i].image ? avatarImages?.get(entries[i].image!) : undefined
-      const showAvatar = !!avatarImg && maxAvatarRadius >= MIN_AVATAR_RADIUS_PX
+      const showAvatar = !!avatarImg && avatarRadius >= MIN_AVATAR_RADIUS_PX
       let textX = radius - 12
 
       if (showAvatar && avatarImg) {
-        const avatarR = maxAvatarRadius * 0.96
-        const avatarCenterR = radius - avatarR - 2
+        const avatarCenterR = radius - avatarRadius - 2
         ctx.save()
         ctx.beginPath()
-        ctx.arc(avatarCenterR, 0, avatarR, 0, Math.PI * 2)
+        ctx.arc(avatarCenterR, 0, avatarRadius, 0, Math.PI * 2)
         ctx.closePath()
         ctx.clip()
-        ctx.drawImage(avatarImg, avatarCenterR - avatarR, -avatarR, avatarR * 2, avatarR * 2)
+        ctx.drawImage(avatarImg, avatarCenterR - avatarRadius, -avatarRadius, avatarRadius * 2, avatarRadius * 2)
         ctx.restore()
         ctx.beginPath()
-        ctx.arc(avatarCenterR, 0, avatarR, 0, Math.PI * 2)
+        ctx.arc(avatarCenterR, 0, avatarRadius, 0, Math.PI * 2)
         ctx.strokeStyle = 'rgba(255,255,255,0.85)'
         ctx.lineWidth = 1.5
         ctx.stroke()
-        textX = avatarCenterR - avatarR - 8
+        textX = avatarCenterR - avatarRadius - 8
       }
 
-      const baseFontSize = showAvatar ? maxAvatarRadius * 0.96 * 0.6 : Math.min(radius * 0.16, 34)
+      const innerMargin = centerImage ? logoRadius + 10 : Math.max(8, radius * 0.04)
+      const availableWidth = Math.max(0, textX - innerMargin)
+
+      // Measure the name at a reference size, then scale to the exact size
+      // that fills the available width — precise per-name fit instead of a
+      // guessed character-width ratio, so short names render large and long
+      // names shrink gracefully before ever needing to truncate.
+      ctx.font = '100px sans-serif'
+      const nameWidthAt100 = ctx.measureText(entries[i].name).width
+      const fitFontSize = nameWidthAt100 > 0 ? (availableWidth / nameWidthAt100) * 100 : 0
       const angleCapFontSize = 2 * radius * 0.4 * sinHalf
-      const fontSize = Math.max(8, Math.min(baseFontSize, angleCapFontSize) * labelFontScale)
+      const styleCapFontSize = showAvatar ? avatarRadius * 0.8 : radius * 0.2
+      const fontSize = Math.max(8, Math.min(fitFontSize, angleCapFontSize, styleCapFontSize) * labelFontScale)
 
       ctx.textAlign = 'right'
       ctx.textBaseline = 'middle'
       ctx.fillStyle = '#fff'
       ctx.font = `${fontSize}px sans-serif`
-      const innerMargin = centerImage ? logoRadius + 10 : Math.max(8, radius * 0.04)
-      const label = fitLabel(ctx, entries[i].name, textX - innerMargin)
+      const label = fitLabel(ctx, entries[i].name, availableWidth)
       ctx.fillText(label, textX, 0)
       ctx.restore()
     }
