@@ -24,7 +24,7 @@ function fitLabel(ctx: CanvasRenderingContext2D, name: string, maxWidth: number)
 }
 
 const MIN_AVATAR_RADIUS_PX = 10
-const MAX_AVATAR_RADIUS_FRACTION = 0.3
+const MAX_AVATAR_RADIUS_FRACTION = 0.22
 
 export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions) {
   const {
