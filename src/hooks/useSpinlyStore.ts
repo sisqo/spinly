@@ -14,15 +14,16 @@ const SAMPLE_ENTRIES: Entry[] = ['Alice', 'Bob', 'Charlie', 'Diana', 'Ethan'].ma
 function loadState(): SpinlyState {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return { entries: SAMPLE_ENTRIES, settings: DEFAULT_SETTINGS, history: [] }
+    if (!raw) return { entries: SAMPLE_ENTRIES, settings: DEFAULT_SETTINGS, history: [], removedEntries: [] }
     const parsed = JSON.parse(raw)
     return {
       entries: Array.isArray(parsed.entries) ? parsed.entries : [],
       settings: { ...DEFAULT_SETTINGS, ...parsed.settings },
       history: Array.isArray(parsed.history) ? parsed.history : [],
+      removedEntries: Array.isArray(parsed.removedEntries) ? parsed.removedEntries : [],
     }
   } catch {
-    return { entries: [], settings: DEFAULT_SETTINGS, history: [] }
+    return { entries: [], settings: DEFAULT_SETTINGS, history: [], removedEntries: [] }
   }
 }
 
@@ -65,6 +66,41 @@ export function useSpinlyStore() {
     setState((s) => ({ ...s, entries: s.entries.filter((e) => e.id !== id) }))
   }, [])
 
+  const clearEntries = useCallback(() => {
+    setState((s) => ({ ...s, entries: [] }))
+  }, [])
+
+  const removeWinnerEntry = useCallback((entry: Entry) => {
+    setState((s) => ({
+      ...s,
+      entries: s.entries.filter((e) => e.id !== entry.id),
+      removedEntries: [...s.removedEntries, entry],
+    }))
+  }, [])
+
+  const restoreLastRemoved = useCallback(() => {
+    setState((s) => {
+      if (s.removedEntries.length === 0) return s
+      const last = s.removedEntries[s.removedEntries.length - 1]
+      return {
+        ...s,
+        entries: [...s.entries, last],
+        removedEntries: s.removedEntries.slice(0, -1),
+      }
+    })
+  }, [])
+
+  const restoreAllRemoved = useCallback(() => {
+    setState((s) => {
+      if (s.removedEntries.length === 0) return s
+      return {
+        ...s,
+        entries: [...s.entries, ...s.removedEntries],
+        removedEntries: [],
+      }
+    })
+  }, [])
+
   const setEntries = useCallback((entries: Entry[]) => {
     setState((s) => ({ ...s, entries }))
   }, [])
@@ -93,18 +129,23 @@ export function useSpinlyStore() {
   }, [])
 
   const resetAll = useCallback(() => {
-    setState({ entries: [], settings: DEFAULT_SETTINGS, history: [] })
+    setState({ entries: [], settings: DEFAULT_SETTINGS, history: [], removedEntries: [] })
   }, [])
 
   return {
     entries: state.entries,
     settings: state.settings,
     history: state.history,
+    removedEntries: state.removedEntries,
     storageError,
     addEntries,
     addEntriesWithImages,
     updateEntry,
     removeEntry,
+    clearEntries,
+    removeWinnerEntry,
+    restoreLastRemoved,
+    restoreAllRemoved,
     setEntries,
     shuffleEntries,
     sortEntriesAZ,

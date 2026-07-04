@@ -113,11 +113,11 @@ export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions)
     ctx.restore()
   }
 
-  // Fixed pointer, top of the wheel — must match POINTER_ANGLE in wheelMath.ts.
+  // Fixed pointer, right of the wheel — must match POINTER_ANGLE in wheelMath.ts.
   ctx.beginPath()
-  ctx.moveTo(cx - 14, cy - radius - 4)
-  ctx.lineTo(cx + 14, cy - radius - 4)
-  ctx.lineTo(cx, cy - radius + 20)
+  ctx.moveTo(cx + radius + 4, cy - 14)
+  ctx.lineTo(cx + radius + 4, cy + 14)
+  ctx.lineTo(cx + radius - 20, cy)
   ctx.closePath()
   ctx.fillStyle = pointerColor
   ctx.fill()

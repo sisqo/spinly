@@ -1,8 +1,11 @@
 const TWO_PI = Math.PI * 2
 
-// The pointer is fixed at the top of the wheel (12 o'clock). Canvas angle 0
-// is the positive x-axis (3 o'clock) and increases clockwise, so "top" is -PI/2.
-export const POINTER_ANGLE = -Math.PI / 2
+// The pointer is fixed at the right of the wheel (3 o'clock) — canvas angle 0,
+// the positive x-axis. This is deliberate: a winning segment's label is drawn
+// along its own local x-axis, so when that segment lands under the pointer
+// its rotation matches world angle 0 and the text renders upright/horizontal
+// instead of sideways (which top/bottom placement would cause).
+export const POINTER_ANGLE = 0
 
 export function mod2pi(angle: number): number {
   return ((angle % TWO_PI) + TWO_PI) % TWO_PI

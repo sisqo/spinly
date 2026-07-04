@@ -27,6 +27,7 @@ export interface SpinlyState {
   entries: Entry[]
   settings: SpinlySettings
   history: WinnerRecord[]
+  removedEntries: Entry[]
 }
 
 export const DEFAULT_SETTINGS: SpinlySettings = {

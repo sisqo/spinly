@@ -52,7 +52,15 @@ function App() {
     if (!isSpinning) {
       wheelRef.current?.draw(rotation.current)
     }
-  }, [store.entries, activeColors, store.settings.centerLogo, isSpinning, rotation])
+  }, [
+    store.entries,
+    activeColors,
+    activeTheme.pointerColor,
+    store.settings.centerLogo,
+    store.settings.labelFontScale,
+    isSpinning,
+    rotation,
+  ])
 
   const handleSpin = useCallback(async () => {
     if (showIntro || winner || isSpinning || store.entries.length < 2) return
@@ -84,16 +92,22 @@ function App() {
 
   const handleCloseWinner = useCallback(() => {
     if (winner && store.settings.removeWinnerAfterSpin) {
-      store.removeEntry(winner.id)
+      store.removeWinnerEntry(winner)
     }
     setWinner(null)
   }, [winner, store])
 
   const handleRemoveAndSpinAgain = useCallback(() => {
-    if (winner) store.removeEntry(winner.id)
+    if (winner) store.removeWinnerEntry(winner)
     setWinner(null)
     setAutoSpinRequested(true)
   }, [winner, store])
+
+  const handleClearAll = useCallback(() => {
+    if (store.entries.length === 0) return
+    if (typeof window !== 'undefined' && !window.confirm('Remove all entries from the wheel?')) return
+    store.clearEntries()
+  }, [store])
 
   const handleKeepAndSpinAgain = useCallback(() => {
     setWinner(null)
@@ -150,38 +164,32 @@ function App() {
       {showIntro && <IntroAnimation onDone={handleIntroDone} />}
 
       <div className="flex h-dvh min-h-0 flex-col gap-4 p-4 md:p-6">
-        {!isFullscreen && (
-          <header className="flex w-full items-center justify-between">
-            <div className="flex items-center gap-2">
-              <img src="/spinly-logo.svg" alt="" className="h-8 w-8" />
-              <h1 className="text-2xl font-bold tracking-tight">Spinly</h1>
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={handleToggleMute}
-                aria-label={store.settings.muted ? 'Unmute' : 'Mute'}
-                aria-pressed={store.settings.muted}
-                className="rounded-full bg-neutral-800/80 p-2.5 hover:bg-neutral-700"
-              >
-                {store.settings.muted ? (
-                  <SpeakerMutedIcon className="h-5 w-5" />
-                ) : (
-                  <SpeakerIcon className="h-5 w-5" />
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={toggleFullscreen}
-                aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-                aria-pressed={isFullscreen}
-                className="rounded-full bg-neutral-800/80 p-2.5 hover:bg-neutral-700"
-              >
-                {isFullscreen ? <CompressIcon className="h-5 w-5" /> : <ExpandIcon className="h-5 w-5" />}
-              </button>
-            </div>
-          </header>
-        )}
+        <header className="flex w-full items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img src="/spinly-logo.svg" alt="" className="h-11 w-11" />
+            <h1 className="text-2xl font-bold tracking-tight">Spinly</h1>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleToggleMute}
+              aria-label={store.settings.muted ? 'Unmute' : 'Mute'}
+              aria-pressed={store.settings.muted}
+              className="rounded-full bg-neutral-800/80 p-2.5 hover:bg-neutral-700"
+            >
+              {store.settings.muted ? <SpeakerMutedIcon className="h-5 w-5" /> : <SpeakerIcon className="h-5 w-5" />}
+            </button>
+            <button
+              type="button"
+              onClick={toggleFullscreen}
+              aria-label={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+              aria-pressed={isFullscreen}
+              className="rounded-full bg-neutral-800/80 p-2.5 hover:bg-neutral-700"
+            >
+              {isFullscreen ? <CompressIcon className="h-5 w-5" /> : <ExpandIcon className="h-5 w-5" />}
+            </button>
+          </div>
+        </header>
 
         <div className="flex flex-1 min-h-0 flex-col gap-6 md:flex-row md:items-stretch">
           <div className="flex flex-1 min-h-0 min-w-0 flex-col items-center gap-3">
@@ -211,6 +219,11 @@ function App() {
                 <EntryToolbar
                   onShuffle={store.shuffleEntries}
                   onSortAZ={store.sortEntriesAZ}
+                  onClearAll={handleClearAll}
+                  onRestoreLast={store.restoreLastRemoved}
+                  onRestoreAll={store.restoreAllRemoved}
+                  canRestoreLast={store.removedEntries.length > 0}
+                  canRestoreAll={store.removedEntries.length > 0}
                   removeWinnerAfterSpin={store.settings.removeWinnerAfterSpin}
                   onToggleRemoveWinner={(value) => store.updateSettings({ removeWinnerAfterSpin: value })}
                   disabled={isSpinning}
@@ -224,54 +237,58 @@ function App() {
                 {store.storageError && <p className="text-sm text-amber-400">{store.storageError}</p>}
               </div>
 
-              <div className="flex flex-col gap-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">Customize</h2>
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="spinly-title" className="text-sm text-neutral-300">
-                    Title
-                  </label>
-                  <input
-                    id="spinly-title"
-                    type="text"
-                    value={store.settings.title}
-                    onChange={(e) => store.updateSettings({ title: e.target.value })}
-                    placeholder="e.g. Who goes first?"
-                    className="w-full rounded-lg bg-neutral-800 px-3 py-2 text-sm text-white placeholder:text-neutral-500"
-                  />
+              <details className="flex flex-col gap-3">
+                <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wide text-neutral-400">
+                  Customize
+                </summary>
+                <div className="flex flex-col gap-4 pt-1">
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="spinly-title" className="text-sm text-neutral-300">
+                      Title
+                    </label>
+                    <input
+                      id="spinly-title"
+                      type="text"
+                      value={store.settings.title}
+                      onChange={(e) => store.updateSettings({ title: e.target.value })}
+                      placeholder="e.g. Who goes first?"
+                      className="w-full rounded-lg bg-neutral-800 px-3 py-2 text-sm text-white placeholder:text-neutral-500"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="spinly-duration" className="text-sm text-neutral-300">
+                      Spin duration (seconds)
+                    </label>
+                    <input
+                      id="spinly-duration"
+                      type="number"
+                      min={MIN_SPIN_SECONDS}
+                      max={MAX_SPIN_SECONDS}
+                      step={0.5}
+                      value={store.settings.spinDurationMs / 1000}
+                      onChange={handleDurationChange}
+                      className="w-24 rounded-lg bg-neutral-800 px-3 py-2 text-sm text-white"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <label htmlFor="spinly-font-scale" className="text-sm text-neutral-300">
+                      Label font size ({Math.round(store.settings.labelFontScale * 100)}%)
+                    </label>
+                    <input
+                      id="spinly-font-scale"
+                      type="range"
+                      min={0.5}
+                      max={2}
+                      step={0.1}
+                      value={store.settings.labelFontScale}
+                      onChange={(e) => store.updateSettings({ labelFontScale: parseFloat(e.target.value) })}
+                      className="w-full"
+                    />
+                  </div>
+                  <ThemePanel settings={store.settings} onUpdateSettings={store.updateSettings} />
+                  <BackgroundLogoUpload settings={store.settings} onUpdateSettings={store.updateSettings} />
                 </div>
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="spinly-duration" className="text-sm text-neutral-300">
-                    Spin duration (seconds)
-                  </label>
-                  <input
-                    id="spinly-duration"
-                    type="number"
-                    min={MIN_SPIN_SECONDS}
-                    max={MAX_SPIN_SECONDS}
-                    step={0.5}
-                    value={store.settings.spinDurationMs / 1000}
-                    onChange={handleDurationChange}
-                    className="w-24 rounded-lg bg-neutral-800 px-3 py-2 text-sm text-white"
-                  />
-                </div>
-                <div className="flex flex-col gap-1">
-                  <label htmlFor="spinly-font-scale" className="text-sm text-neutral-300">
-                    Label font size ({Math.round(store.settings.labelFontScale * 100)}%)
-                  </label>
-                  <input
-                    id="spinly-font-scale"
-                    type="range"
-                    min={0.5}
-                    max={2}
-                    step={0.1}
-                    value={store.settings.labelFontScale}
-                    onChange={(e) => store.updateSettings({ labelFontScale: parseFloat(e.target.value) })}
-                    className="w-full"
-                  />
-                </div>
-                <ThemePanel settings={store.settings} onUpdateSettings={store.updateSettings} />
-                <BackgroundLogoUpload settings={store.settings} onUpdateSettings={store.updateSettings} />
-              </div>
+              </details>
 
               <div className="flex flex-col gap-3">
                 <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">History</h2>
