@@ -1,0 +1,113 @@
+import type { Entry } from '../types'
+
+interface DrawWheelOptions {
+  entries: Entry[]
+  rotation: number
+  colors: string[]
+  pointerColor: string
+  size: number
+  pixelRatio?: number
+  centerImage?: HTMLImageElement
+  avatarImages?: Map<string, HTMLImageElement>
+}
+
+const AVATAR_MIN_ARC_PX = 30
+
+export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions) {
+  const { entries, rotation, colors, pointerColor, size, pixelRatio = 1, centerImage, avatarImages } = opts
+  const n = entries.length
+  const cx = size / 2
+  const cy = size / 2
+  const radius = size / 2 - 4
+
+  ctx.save()
+  ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
+  ctx.clearRect(0, 0, size, size)
+
+  if (n === 0) {
+    ctx.beginPath()
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2)
+    ctx.fillStyle = '#27272a'
+    ctx.fill()
+  } else {
+    const segmentAngle = (Math.PI * 2) / n
+    const avatarCenterR = radius * 0.66
+    const arcAtAvatarR = segmentAngle * avatarCenterR
+
+    ctx.save()
+    ctx.translate(cx, cy)
+    ctx.rotate(rotation)
+    for (let i = 0; i < n; i++) {
+      const start = i * segmentAngle
+      const end = start + segmentAngle
+
+      ctx.beginPath()
+      ctx.moveTo(0, 0)
+      ctx.arc(0, 0, radius, start, end)
+      ctx.closePath()
+      ctx.fillStyle = colors[i % colors.length]
+      ctx.fill()
+
+      ctx.save()
+      ctx.rotate(start + segmentAngle / 2)
+
+      const avatarImg = entries[i].image ? avatarImages?.get(entries[i].image!) : undefined
+      const showAvatar = !!avatarImg && arcAtAvatarR >= AVATAR_MIN_ARC_PX
+      let textX = radius - 12
+
+      if (showAvatar && avatarImg) {
+        const avatarDiameter = Math.min(40, arcAtAvatarR * 0.85)
+        const avatarR = avatarDiameter / 2
+        ctx.save()
+        ctx.beginPath()
+        ctx.arc(avatarCenterR, 0, avatarR, 0, Math.PI * 2)
+        ctx.closePath()
+        ctx.clip()
+        ctx.drawImage(avatarImg, avatarCenterR - avatarR, -avatarR, avatarDiameter, avatarDiameter)
+        ctx.restore()
+        ctx.beginPath()
+        ctx.arc(avatarCenterR, 0, avatarR, 0, Math.PI * 2)
+        ctx.strokeStyle = 'rgba(255,255,255,0.85)'
+        ctx.lineWidth = 1.5
+        ctx.stroke()
+        textX = avatarCenterR - avatarR - 8
+      }
+
+      ctx.textAlign = 'right'
+      ctx.textBaseline = 'middle'
+      ctx.fillStyle = '#fff'
+      ctx.font = `${Math.max(12, Math.min(20, 300 / n))}px sans-serif`
+      const label = entries[i].name.length > 18 ? `${entries[i].name.slice(0, 17)}…` : entries[i].name
+      ctx.fillText(label, textX, 0)
+      ctx.restore()
+    }
+    ctx.restore()
+  }
+
+  // Fixed pointer, top of the wheel — must match POINTER_ANGLE in wheelMath.ts.
+  ctx.beginPath()
+  ctx.moveTo(cx - 14, cy - radius - 4)
+  ctx.lineTo(cx + 14, cy - radius - 4)
+  ctx.lineTo(cx, cy - radius + 20)
+  ctx.closePath()
+  ctx.fillStyle = pointerColor
+  ctx.fill()
+
+  if (centerImage) {
+    const logoRadius = Math.max(20, radius * 0.2)
+    ctx.save()
+    ctx.beginPath()
+    ctx.arc(cx, cy, logoRadius, 0, Math.PI * 2)
+    ctx.closePath()
+    ctx.clip()
+    ctx.drawImage(centerImage, cx - logoRadius, cy - logoRadius, logoRadius * 2, logoRadius * 2)
+    ctx.restore()
+    ctx.beginPath()
+    ctx.arc(cx, cy, logoRadius, 0, Math.PI * 2)
+    ctx.strokeStyle = '#ffffff'
+    ctx.lineWidth = 2
+    ctx.stroke()
+  }
+
+  ctx.restore()
+}
