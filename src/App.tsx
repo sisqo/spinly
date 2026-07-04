@@ -29,7 +29,6 @@ function App() {
   const store = useSpinlyStore()
   const wheelRef = useRef<WheelCanvasHandle>(null)
   const [winner, setWinner] = useState<Entry | null>(null)
-  const [autoSpinRequested, setAutoSpinRequested] = useState(false)
   const [showIntro, setShowIntro] = useState(
     () => typeof window !== 'undefined' && sessionStorage.getItem(INTRO_SESSION_KEY) !== '1',
   )
@@ -83,13 +82,6 @@ function App() {
     fireWinnerConfetti()
   }, [showIntro, winner, isSpinning, store, primeAudio, spin, playFanfare])
 
-  useEffect(() => {
-    if (autoSpinRequested && !winner && !isSpinning) {
-      setAutoSpinRequested(false)
-      handleSpin()
-    }
-  }, [autoSpinRequested, winner, isSpinning, handleSpin])
-
   const handleCloseWinner = useCallback(() => {
     if (winner && store.settings.removeWinnerAfterSpin) {
       store.removeWinnerEntry(winner)
@@ -97,10 +89,9 @@ function App() {
     setWinner(null)
   }, [winner, store])
 
-  const handleRemoveAndSpinAgain = useCallback(() => {
+  const handleRemoveAndClose = useCallback(() => {
     if (winner) store.removeWinnerEntry(winner)
     setWinner(null)
-    setAutoSpinRequested(true)
   }, [winner, store])
 
   const handleClearAll = useCallback(() => {
@@ -108,11 +99,6 @@ function App() {
     if (typeof window !== 'undefined' && !window.confirm('Remove all entries from the wheel?')) return
     store.clearEntries()
   }, [store])
-
-  const handleKeepAndSpinAgain = useCallback(() => {
-    setWinner(null)
-    setAutoSpinRequested(true)
-  }, [])
 
   const handleIntroDone = useCallback(() => {
     if (typeof window !== 'undefined') sessionStorage.setItem(INTRO_SESSION_KEY, '1')
@@ -212,36 +198,12 @@ function App() {
           </div>
 
           {!isFullscreen && (
-            <div className="flex w-full flex-col gap-8 md:w-96 md:flex-shrink-0 md:overflow-y-auto">
-              <div className="flex flex-col gap-3">
-                <EntryInput onAdd={store.addEntries} disabled={isSpinning} />
-                <AddFromImagesButton onAdd={store.addEntriesWithImages} disabled={isSpinning} />
-                <EntryToolbar
-                  onShuffle={store.shuffleEntries}
-                  onSortAZ={store.sortEntriesAZ}
-                  onClearAll={handleClearAll}
-                  onRestoreLast={store.restoreLastRemoved}
-                  onRestoreAll={store.restoreAllRemoved}
-                  canRestoreLast={store.removedEntries.length > 0}
-                  canRestoreAll={store.removedEntries.length > 0}
-                  removeWinnerAfterSpin={store.settings.removeWinnerAfterSpin}
-                  onToggleRemoveWinner={(value) => store.updateSettings({ removeWinnerAfterSpin: value })}
-                  disabled={isSpinning}
-                />
-                <EntryList
-                  entries={store.entries}
-                  onUpdateEntry={store.updateEntry}
-                  onRemoveEntry={store.removeEntry}
-                  disabled={isSpinning}
-                />
-                {store.storageError && <p className="text-sm text-amber-400">{store.storageError}</p>}
-              </div>
-
-              <details className="flex flex-col gap-3">
+            <div className="flex w-full flex-col gap-4 md:w-96 md:flex-shrink-0 md:overflow-y-auto">
+              <details open className="flex flex-col gap-3">
                 <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wide text-neutral-400">
-                  Customize
+                  General
                 </summary>
-                <div className="flex flex-col gap-4 pt-1">
+                <div className="flex flex-col gap-6 pt-1">
                   <div className="flex flex-col gap-1">
                     <label htmlFor="spinly-title" className="text-sm text-neutral-300">
                       Title
@@ -270,6 +232,43 @@ function App() {
                       className="w-24 rounded-lg bg-neutral-800 px-3 py-2 text-sm text-white"
                     />
                   </div>
+
+                  <div className="flex flex-col gap-3">
+                    <EntryInput onAdd={store.addEntries} disabled={isSpinning} />
+                    <AddFromImagesButton onAdd={store.addEntriesWithImages} disabled={isSpinning} />
+                    <EntryToolbar
+                      onShuffle={store.shuffleEntries}
+                      onSortAZ={store.sortEntriesAZ}
+                      onClearAll={handleClearAll}
+                      onRestoreLast={store.restoreLastRemoved}
+                      onRestoreAll={store.restoreAllRemoved}
+                      canRestoreLast={store.removedEntries.length > 0}
+                      canRestoreAll={store.removedEntries.length > 0}
+                      removeWinnerAfterSpin={store.settings.removeWinnerAfterSpin}
+                      onToggleRemoveWinner={(value) => store.updateSettings({ removeWinnerAfterSpin: value })}
+                      disabled={isSpinning}
+                    />
+                    <EntryList
+                      entries={store.entries}
+                      onUpdateEntry={store.updateEntry}
+                      onRemoveEntry={store.removeEntry}
+                      disabled={isSpinning}
+                    />
+                    {store.storageError && <p className="text-sm text-amber-400">{store.storageError}</p>}
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">History</h3>
+                    <HistoryPanel history={store.history} />
+                  </div>
+                </div>
+              </details>
+
+              <details className="flex flex-col gap-3">
+                <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wide text-neutral-400">
+                  Graphic
+                </summary>
+                <div className="flex flex-col gap-4 pt-1">
                   <div className="flex flex-col gap-1">
                     <label htmlFor="spinly-font-scale" className="text-sm text-neutral-300">
                       Label font size ({Math.round(store.settings.labelFontScale * 100)}%)
@@ -289,11 +288,6 @@ function App() {
                   <BackgroundLogoUpload settings={store.settings} onUpdateSettings={store.updateSettings} />
                 </div>
               </details>
-
-              <div className="flex flex-col gap-3">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">History</h2>
-                <HistoryPanel history={store.history} />
-              </div>
             </div>
           )}
         </div>
@@ -319,12 +313,7 @@ function App() {
         </div>
       )}
 
-      <WinnerModal
-        winner={winner}
-        onClose={handleCloseWinner}
-        onRemoveAndSpinAgain={handleRemoveAndSpinAgain}
-        onKeepAndSpinAgain={handleKeepAndSpinAgain}
-      />
+      <WinnerModal winner={winner} onClose={handleCloseWinner} onRemoveAndClose={handleRemoveAndClose} />
     </div>
   )
 }

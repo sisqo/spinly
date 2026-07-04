@@ -41,6 +41,8 @@ export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions)
   const cy = size / 2
   const radius = size / 2 - 4
 
+  const logoRadius = centerImage ? Math.max(20, radius * 0.2) : 0
+
   ctx.save()
   ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
   ctx.clearRect(0, 0, size, size)
@@ -105,7 +107,7 @@ export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions)
       ctx.textBaseline = 'middle'
       ctx.fillStyle = '#fff'
       ctx.font = `${fontSize}px sans-serif`
-      const innerMargin = Math.max(8, radius * 0.04)
+      const innerMargin = centerImage ? logoRadius + 10 : Math.max(8, radius * 0.04)
       const label = fitLabel(ctx, entries[i].name, textX - innerMargin)
       ctx.fillText(label, textX, 0)
       ctx.restore()
@@ -123,7 +125,6 @@ export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions)
   ctx.fill()
 
   if (centerImage) {
-    const logoRadius = Math.max(20, radius * 0.2)
     ctx.save()
     ctx.beginPath()
     ctx.arc(cx, cy, logoRadius, 0, Math.PI * 2)
