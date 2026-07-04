@@ -58,7 +58,25 @@ export function computeFinalRotation(
   return currentRotation + delta + extraTurns * TWO_PI
 }
 
-export function easeOutQuint(t: number): number {
+// Cubic-bezier timing function (same math as CSS's cubic-bezier()): P0=(0,0)
+// and P3=(1,1) are fixed, P1/P2 are the handles. Solved via bisection since
+// the curve isn't directly invertible in closed form.
+function cubicBezier(t: number, x1: number, y1: number, x2: number, y2: number): number {
+  const bezierComponent = (u: number, a: number, b: number) =>
+    3 * (1 - u) ** 2 * u * a + 3 * (1 - u) * u ** 2 * b + u ** 3
+  let lo = 0
+  let hi = 1
+  for (let i = 0; i < 24; i++) {
+    const mid = (lo + hi) / 2
+    if (bezierComponent(mid, x1, x2) < t) lo = mid
+    else hi = mid
+  }
+  return bezierComponent((lo + hi) / 2, y1, y2)
+}
+
+// Spin easing: starts slow, accelerates, then decelerates gently over a long
+// final stretch — more realistic and dramatic than a plain ease-out.
+export function spinEasing(t: number): number {
   const clamped = Math.min(Math.max(t, 0), 1)
-  return 1 - Math.pow(1 - clamped, 5)
+  return cubicBezier(clamped, 0.17, 0.02, 0.06, 1)
 }

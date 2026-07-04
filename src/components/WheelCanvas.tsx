@@ -21,7 +21,7 @@ const WheelCanvas = forwardRef<WheelCanvasHandle, WheelCanvasProps>(function Whe
   { entries, colors, pointerColor, centerImageUrl, labelFontScale = 1, onActivate, disabled = false },
   ref,
 ) {
-  const containerRef = useRef<HTMLDivElement | null>(null)
+  const containerRef = useRef<HTMLButtonElement | null>(null)
   const canvasRef = useRef<HTMLCanvasElement | null>(null)
   const lastRotationRef = useRef(0)
   const centerImageElRef = useRef<HTMLImageElement | null>(null)
@@ -113,22 +113,16 @@ const WheelCanvas = forwardRef<WheelCanvasHandle, WheelCanvasProps>(function Whe
   }, [entries])
 
   return (
-    <div ref={containerRef} className="h-full w-full min-h-0 min-w-0">
-      <button
-        type="button"
-        onClick={onActivate}
-        disabled={disabled || !onActivate}
-        aria-label="Spin the wheel"
-        className="flex h-full w-full items-center justify-center disabled:cursor-not-allowed enabled:cursor-pointer"
-      >
-        <canvas
-          ref={canvasRef}
-          width={size * dpr}
-          height={size * dpr}
-          style={{ width: size, height: size }}
-        />
-      </button>
-    </div>
+    <button
+      ref={containerRef}
+      type="button"
+      onClick={onActivate}
+      disabled={disabled || !onActivate}
+      aria-label="Spin the wheel"
+      className="flex min-h-0 w-full min-w-0 flex-1 items-center justify-center disabled:cursor-not-allowed enabled:cursor-pointer"
+    >
+      <canvas ref={canvasRef} width={size * dpr} height={size * dpr} style={{ width: size, height: size }} />
+    </button>
   )
 })
 

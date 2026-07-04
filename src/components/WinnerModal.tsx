@@ -46,18 +46,18 @@ export default function WinnerModal({ winner, onClose, onRemoveAndClose }: Winne
           </div>
         )}
         <h2 className="mb-8 break-words text-4xl font-extrabold tracking-tight">{winner.name}</h2>
-        <div className="flex flex-col gap-2">
+        <div className="flex gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full bg-white px-6 py-3 text-base font-semibold text-black hover:bg-neutral-200"
+            className="flex-1 rounded-full bg-neutral-800 px-6 py-3 text-sm font-medium hover:bg-neutral-700"
           >
             Close
           </button>
           <button
             type="button"
             onClick={onRemoveAndClose}
-            className="rounded-full bg-neutral-800 px-6 py-2.5 text-sm font-medium hover:bg-neutral-700"
+            className="flex-1 rounded-full bg-white px-6 py-3 text-base font-semibold text-black hover:bg-neutral-200"
           >
             Remove and close
           </button>

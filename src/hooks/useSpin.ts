@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
-import { computeFinalRotation, easeOutQuint, pickWinnerIndex, segmentAtPointer } from '../lib/wheelMath'
+import { computeFinalRotation, pickWinnerIndex, segmentAtPointer, spinEasing } from '../lib/wheelMath'
 
 export const DEFAULT_SPIN_DURATION_MS = 6500
 
@@ -43,7 +43,7 @@ export function useSpin(
         if (startTime === null) startTime = t
         const elapsed = t - startTime
         const progress = Math.min(elapsed / durationMs, 1)
-        const current = start + (final - start) * easeOutQuint(progress)
+        const current = start + (final - start) * spinEasing(progress)
         rotationRef.current = current
         draw(current)
 

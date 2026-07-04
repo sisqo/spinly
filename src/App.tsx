@@ -149,7 +149,11 @@ function App() {
     <div className="flex min-h-dvh flex-col text-white" style={pageStyle}>
       {showIntro && <IntroAnimation onDone={handleIntroDone} />}
 
-      <div className="flex h-dvh min-h-0 flex-col gap-4 p-4 md:p-6">
+      <div
+        className={`flex flex-col gap-4 p-4 md:p-6 ${
+          isFullscreen ? 'h-dvh min-h-0' : 'min-h-dvh md:h-dvh md:min-h-0'
+        }`}
+      >
         <header className="flex w-full items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/spinly-logo.svg" alt="" className="h-11 w-11" />
@@ -178,22 +182,20 @@ function App() {
         </header>
 
         <div className="flex flex-1 min-h-0 flex-col gap-6 md:flex-row md:items-stretch">
-          <div className="flex flex-1 min-h-0 min-w-0 flex-col items-center gap-3">
+          <div className="flex min-h-[60vh] flex-1 min-w-0 flex-col items-center gap-3">
             {store.settings.title && (
               <h2 className="text-center text-xl font-semibold md:text-2xl">{store.settings.title}</h2>
             )}
-            <div className="min-h-0 w-full flex-1">
-              <WheelCanvas
-                ref={wheelRef}
-                entries={store.entries}
-                colors={activeColors}
-                pointerColor={activeTheme.pointerColor}
-                centerImageUrl={store.settings.centerLogo}
-                labelFontScale={store.settings.labelFontScale}
-                onActivate={handleSpin}
-                disabled={store.entries.length < 2 || isSpinning}
-              />
-            </div>
+            <WheelCanvas
+              ref={wheelRef}
+              entries={store.entries}
+              colors={activeColors}
+              pointerColor={activeTheme.pointerColor}
+              centerImageUrl={store.settings.centerLogo}
+              labelFontScale={store.settings.labelFontScale}
+              onActivate={handleSpin}
+              disabled={store.entries.length < 2 || isSpinning}
+            />
             <p className="text-xs text-neutral-400">{wheelHint}</p>
           </div>
 
