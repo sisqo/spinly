@@ -17,7 +17,6 @@ export interface SpinlySettings {
   backgroundImage: string | null
   centerLogo: string | null
   muted: boolean
-  removeWinnerAfterSpin: boolean
   title: string
   spinDurationMs: number
   labelFontScale: number
@@ -37,7 +36,6 @@ export const DEFAULT_SETTINGS: SpinlySettings = {
   backgroundImage: null,
   centerLogo: null,
   muted: false,
-  removeWinnerAfterSpin: false,
   title: '',
   spinDurationMs: 6500,
   labelFontScale: 1,

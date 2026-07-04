@@ -1,7 +1,11 @@
-import { useCallback, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { computeFinalRotation, pickWinnerIndex, segmentAtPointer, spinEasing } from '../lib/wheelMath'
 
 export const DEFAULT_SPIN_DURATION_MS = 6500
+
+// Gentle ambient rotation shown before the first real spin — one full turn
+// roughly every 24 seconds.
+const IDLE_ROTATION_SPEED = (Math.PI * 2) / 24000
 
 interface UseSpinOptions {
   onTick?: (segmentIndex: number) => void
@@ -16,8 +20,30 @@ export function useSpin(
   const rotationRef = useRef(0)
   const spinningRef = useRef(false)
   const [isSpinning, setIsSpinning] = useState(false)
+  const [hasSpunOnce, setHasSpunOnce] = useState(false)
   const onTickRef = useRef(options.onTick)
   onTickRef.current = options.onTick
+  const drawRef = useRef(draw)
+  drawRef.current = draw
+
+  useEffect(() => {
+    if (hasSpunOnce || entryCount < 1) return
+    let rafId: number
+    let last: number | null = null
+
+    const idleFrame = (t: number) => {
+      if (spinningRef.current) return
+      if (last === null) last = t
+      const dt = t - last
+      last = t
+      rotationRef.current += IDLE_ROTATION_SPEED * dt
+      drawRef.current(rotationRef.current)
+      rafId = requestAnimationFrame(idleFrame)
+    }
+
+    rafId = requestAnimationFrame(idleFrame)
+    return () => cancelAnimationFrame(rafId)
+  }, [hasSpunOnce, entryCount])
 
   const spin = useCallback((): Promise<number> => {
     return new Promise<number>((resolve, reject) => {
@@ -30,6 +56,7 @@ export function useSpin(
         return
       }
 
+      setHasSpunOnce(true)
       const winnerIndex = pickWinnerIndex(entryCount)
       const start = rotationRef.current
       const final = computeFinalRotation(start, winnerIndex, entryCount)

@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { Entry } from '../types'
 
 interface WinnerModalProps {
@@ -7,13 +7,28 @@ interface WinnerModalProps {
   onRemoveAndClose: () => void
 }
 
+const EXIT_ANIMATION_MS = 250
+
 export default function WinnerModal({ winner, onClose, onRemoveAndClose }: WinnerModalProps) {
   const prefersReducedMotion = useMemo(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     [],
   )
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null)
+
+  useEffect(() => {
+    if (winner) setPendingAction(null)
+  }, [winner])
+
+  useEffect(() => {
+    if (pendingAction && prefersReducedMotion) {
+      pendingAction()
+    }
+  }, [pendingAction, prefersReducedMotion])
 
   if (!winner) return null
+
+  const closing = pendingAction !== null
 
   return (
     <div
@@ -26,11 +41,20 @@ export default function WinnerModal({ winner, onClose, onRemoveAndClose }: Winne
           from { transform: scale(0.85); opacity: 0; }
           to { transform: scale(1); opacity: 1; }
         }
+        @keyframes spinly-winner-close {
+          from { transform: scale(1); opacity: 1; }
+          to { transform: scale(0.85); opacity: 0; }
+        }
       `}</style>
       <div
         className="mx-4 w-full max-w-md rounded-3xl bg-gradient-to-b from-neutral-900 to-neutral-950 p-8 text-center text-white shadow-2xl ring-1 ring-white/10"
+        onAnimationEnd={() => pendingAction?.()}
         style={{
-          animation: prefersReducedMotion ? undefined : 'spinly-winner-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+          animation: prefersReducedMotion
+            ? undefined
+            : closing
+              ? `spinly-winner-close ${EXIT_ANIMATION_MS}ms cubic-bezier(0.4, 0, 1, 1) forwards`
+              : 'spinly-winner-pop 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
         }}
       >
         <p className="mb-4 text-xs font-semibold uppercase tracking-[0.2em] text-amber-400">🎉 Winner</p>
@@ -49,15 +73,17 @@ export default function WinnerModal({ winner, onClose, onRemoveAndClose }: Winne
         <div className="flex gap-2">
           <button
             type="button"
-            onClick={onClose}
-            className="flex-1 rounded-full bg-neutral-800 px-6 py-3 text-sm font-medium hover:bg-neutral-700"
+            onClick={() => setPendingAction(() => onClose)}
+            disabled={closing}
+            className="flex-1 rounded-full bg-neutral-800 px-6 py-3 text-sm font-medium hover:bg-neutral-700 disabled:opacity-60"
           >
             Close
           </button>
           <button
             type="button"
-            onClick={onRemoveAndClose}
-            className="flex-1 rounded-full bg-white px-6 py-3 text-base font-semibold text-black hover:bg-neutral-200"
+            onClick={() => setPendingAction(() => onRemoveAndClose)}
+            disabled={closing}
+            className="flex-1 rounded-full bg-white px-6 py-3 text-base font-semibold text-black hover:bg-neutral-200 disabled:opacity-60"
           >
             Remove and close
           </button>

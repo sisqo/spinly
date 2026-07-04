@@ -5,6 +5,7 @@ interface DrawWheelOptions {
   rotation: number
   colors: string[]
   pointerColor: string
+  labelColor: string
   size: number
   pixelRatio?: number
   centerImage?: HTMLImageElement
@@ -31,6 +32,7 @@ export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions)
     rotation,
     colors,
     pointerColor,
+    labelColor,
     size,
     pixelRatio = 1,
     centerImage,
@@ -42,7 +44,9 @@ export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions)
   const cy = size / 2
   const radius = size / 2 - 4
 
-  const logoRadius = centerImage ? Math.max(20, radius * 0.2) : 0
+  // Always reserve this hub space for label clearance, whether or not a
+  // center logo image is actually set, so text never crowds the middle.
+  const logoRadius = Math.max(20, radius * 0.2)
 
   ctx.save()
   ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0)
@@ -103,7 +107,7 @@ export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions)
         textX = avatarCenterR - avatarRadius - 8
       }
 
-      const innerMargin = centerImage ? logoRadius + 10 : Math.max(8, radius * 0.04)
+      const innerMargin = logoRadius + 10
       const availableWidth = Math.max(0, textX - innerMargin)
 
       // Measure the name at a reference size, then scale to the exact size
@@ -119,7 +123,7 @@ export function drawWheel(ctx: CanvasRenderingContext2D, opts: DrawWheelOptions)
 
       ctx.textAlign = 'right'
       ctx.textBaseline = 'middle'
-      ctx.fillStyle = '#fff'
+      ctx.fillStyle = labelColor
       ctx.font = `${fontSize}px sans-serif`
       const label = fitLabel(ctx, entries[i].name, availableWidth)
       ctx.fillText(label, textX, 0)

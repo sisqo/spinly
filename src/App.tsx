@@ -55,6 +55,7 @@ function App() {
     store.entries,
     activeColors,
     activeTheme.pointerColor,
+    activeTheme.labelColor,
     store.settings.centerLogo,
     store.settings.labelFontScale,
     isSpinning,
@@ -83,11 +84,8 @@ function App() {
   }, [showIntro, winner, isSpinning, store, primeAudio, spin, playFanfare])
 
   const handleCloseWinner = useCallback(() => {
-    if (winner && store.settings.removeWinnerAfterSpin) {
-      store.removeWinnerEntry(winner)
-    }
     setWinner(null)
-  }, [winner, store])
+  }, [])
 
   const handleRemoveAndClose = useCallback(() => {
     if (winner) store.removeWinnerEntry(winner)
@@ -154,7 +152,7 @@ function App() {
           isFullscreen ? 'h-dvh min-h-0' : 'min-h-dvh md:h-dvh md:min-h-0'
         }`}
       >
-        <header className="flex w-full items-center justify-between">
+        <header className="sticky top-0 z-40 flex w-full items-center justify-between bg-neutral-950/70 py-1 backdrop-blur-sm">
           {!store.settings.hideBranding && (
             <div className="flex items-center gap-3">
               <img src="/spinly-logo.svg" alt="" className="h-11 w-11" />
@@ -193,6 +191,7 @@ function App() {
               entries={store.entries}
               colors={activeColors}
               pointerColor={activeTheme.pointerColor}
+              labelColor={activeTheme.labelColor}
               centerImageUrl={store.settings.centerLogo}
               labelFontScale={store.settings.labelFontScale}
               onActivate={handleSpin}
@@ -248,8 +247,6 @@ function App() {
                       onRestoreAll={store.restoreAllRemoved}
                       canRestoreLast={store.removedEntries.length > 0}
                       canRestoreAll={store.removedEntries.length > 0}
-                      removeWinnerAfterSpin={store.settings.removeWinnerAfterSpin}
-                      onToggleRemoveWinner={(value) => store.updateSettings({ removeWinnerAfterSpin: value })}
                       disabled={isSpinning}
                     />
                     <EntryList

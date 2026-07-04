@@ -11,6 +11,7 @@ interface WheelCanvasProps {
   entries: Entry[]
   colors: string[]
   pointerColor: string
+  labelColor: string
   centerImageUrl?: string | null
   labelFontScale?: number
   onActivate?: () => void
@@ -18,7 +19,7 @@ interface WheelCanvasProps {
 }
 
 const WheelCanvas = forwardRef<WheelCanvasHandle, WheelCanvasProps>(function WheelCanvas(
-  { entries, colors, pointerColor, centerImageUrl, labelFontScale = 1, onActivate, disabled = false },
+  { entries, colors, pointerColor, labelColor, centerImageUrl, labelFontScale = 1, onActivate, disabled = false },
   ref,
 ) {
   const containerRef = useRef<HTMLButtonElement | null>(null)
@@ -50,6 +51,7 @@ const WheelCanvas = forwardRef<WheelCanvasHandle, WheelCanvasProps>(function Whe
         rotation,
         colors,
         pointerColor,
+        labelColor,
         size,
         pixelRatio: dpr,
         centerImage: centerImageElRef.current ?? undefined,
@@ -57,7 +59,7 @@ const WheelCanvas = forwardRef<WheelCanvasHandle, WheelCanvasProps>(function Whe
         labelFontScale,
       })
     },
-    [entries, colors, pointerColor, size, dpr, labelFontScale],
+    [entries, colors, pointerColor, labelColor, size, dpr, labelFontScale],
   )
 
   // Always call the latest renderFrame, even from an onload callback whose
