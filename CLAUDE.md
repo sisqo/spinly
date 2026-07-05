@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Spinly is a free, client-side spinning-wheel name picker (giveaways, raffles, classroom randomizers). Everything runs in the browser — no backend, no accounts; state persists to `localStorage` only. Deployed at https://spinly.sisqo.dev (Vercel project `spinly`, GitHub repo `sisqo/spinly`, auto-deploys on push to `main`).
 
+`PRODUCT.md` and `DESIGN.md` at the repo root capture the product strategy and visual design system (register, personality, color/typography tokens, named rules) — read them before making product- or design-facing changes; this file stays focused on code architecture.
+
 ## Commands
 
 ```bash
@@ -49,9 +51,25 @@ A `ThemeDef` bundles `colors`, `background`, `pointerColor`, and `labelColor` to
 
 The app's own presentation layout (hide sidebar/footer, expand the wheel) is intentionally decoupled from the browser's native Fullscreen API. iOS Safari (and in-app webviews) never implement `requestFullscreen()` for non-`<video>` elements, so driving the layout purely off `document.fullscreenElement` left the button doing nothing on those platforms. The hook now always toggles its own `isPresenting` state and calls the native API opportunistically where it's supported.
 
+### Entries panel vs. Settings drawer — two separate surfaces, not one sidebar
+
+The old single sidebar (accordion of "General"/"Graphic") is gone. `App.tsx` now renders two independent things beside the wheel:
+- An always-visible **entries panel** (`EntryInput`/`AddFromImagesButton`/`EntryToolbar`/`EntryList`/`HistoryPanel`) in the same column the old sidebar used to occupy — this is content (the names), not configuration, and stays reachable at all times.
+- A **Settings drawer** (`SettingsDrawer.tsx` + `SettingsPanel.tsx`) for actual configuration (title, duration, branding, font size, theme, colors, background, logo). `SettingsDrawer` is a pure shell (positioning, open/close, focus management); `SettingsPanel` is the content. It's a `position: fixed` overlay toggled by a header icon, deliberately **not** reserved as extra layout padding — it overlaps whatever's underneath (by design, so opening/closing it never reflows the wheel/entries columns) and has **no dimming backdrop**, so the wheel keeps redrawing live while settings are being adjusted. Below the `md` breakpoint it renders as a near-full-screen bottom sheet instead of a right-side panel. `isSettingsOpen` always starts `false` on every load, on every breakpoint — it's ephemeral UI state, never persisted.
+
+`SettingsDrawer` owns focus management on its own mount/unmount lifecycle (it literally returns `null` when closed, so a `useEffect` keyed on `open` — not `[]` — is what makes it refire every time the panel toggles): opening moves focus to its Close button and remembers whatever was focused before; closing restores focus there. Escape closing the drawer is coordinated centrally through `useKeyboardShortcuts`, not a second local listener — see below.
+
+### `useArmedConfirm` (`src/hooks/useArmedConfirm.ts`) — the one confirm pattern, shared
+
+Destructive actions (`EntryToolbar`'s "Clear all", `SettingsPanel`'s "Reset to defaults") never use `window.confirm` or a modal — they use one shared arm-then-confirm hook instead: first activation flips the button into an armed state (danger styling, "Confirm ...?" label) for a few seconds; a second activation within that window actually fires; otherwise it silently reverts. The hook also exposes `pauseAutoDisarm`/`resumeAutoDisarm` (wired to hover/focus) so the window doesn't collapse on someone who's still reading it — mirrors the same reasoning as the removed-entry toast's pause-on-hover in `App.tsx`.
+
 ### Everything else lives in `App.tsx`
 
-`App.tsx` is the orchestrator: it owns the winner/spin/intro-screen state machine, wires `useSpin` (spin animation + promise-based winner resolution), `useSpinAudio` (Web Audio ticks/fanfare — must be primed synchronously inside a user-gesture handler, before any `await`, or Safari's autoplay policy silently drops it), `useKeyboardShortcuts` (Space/Enter/F/M/Escape, ignored while an input is focused), and renders the sidebar's two collapsible sections ("General": entries/history; "Graphic": theme/background/logo/branding). Components under `src/components/` are otherwise presentational and receive all data/callbacks as props — there's no context provider anywhere in the tree.
+`App.tsx` is the orchestrator: it owns the winner/spin/intro-screen state machine, wires `useSpin` (spin animation + promise-based winner resolution), `useSpinAudio` (Web Audio ticks/fanfare — must be primed synchronously inside a user-gesture handler, before any `await`, or Safari's autoplay policy silently drops it), and `useKeyboardShortcuts`. That hook's shortcuts (Space/Enter/F/M) are ignored while an input is focused, but **Escape is checked first, before that guard** — it has to close the settings panel even when focus is inside one of its own text fields, which a naive single early-return would silently swallow. Escape closes settings if `isSettingsOpen`, otherwise exits fullscreen — one hook arbitrates both meanings rather than two independent listeners racing each other. Components under `src/components/` are otherwise presentational and receive all data/callbacks as props — there's no context provider anywhere in the tree.
+
+### A Chromium touch-drag quirk worth knowing about (`SettingsPanel.tsx`'s font-size slider)
+
+Chromium's native `<input type="range">` abandons its own touch-drag tracking mid-gesture once the touch strays far enough perpendicular to the track (trivial to trigger with a real finger on a thin slider) — reproduces even on a bare range input with no Spinly markup/CSS involved, so it isn't a local layout bug. Mouse, keyboard, and click are unaffected. The fix takes over value computation from the pointer's `clientX` (with `setPointerCapture`) for touch pointers specifically, bypassing the native drag logic entirely while leaving every other input method on the native path. If a future slider exhibits "works on click, not on drag" on touch devices, this is almost certainly the same bug.
 
 ### Code style
 
