@@ -7,6 +7,15 @@ export interface KeyboardShortcutHandlers {
   onExitFullscreen: () => void
 }
 
+// Elements that natively activate on their own Enter/Space keydown (the
+// browser fires a click for a focused <button>/<a href>/<summary> before any
+// bubbling listener runs). The wheel itself is one of these (a <button> in
+// WheelCanvas), so Space-to-spin already works via native semantics whenever
+// it — or any other such control — has focus; this listener's Space/Enter
+// case is only meant to catch the fallback case where focus is elsewhere
+// (e.g. the page body) and must not steal activation from a focused control.
+const NATIVE_ACTIVATION_SELECTOR = 'button, a[href], summary, [role="button"], [role="link"]'
+
 export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
   const handlersRef = useRef(handlers)
   handlersRef.current = handlers
@@ -24,10 +33,12 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
 
       switch (event.key) {
         case ' ':
-        case 'Enter':
+        case 'Enter': {
+          if (active instanceof HTMLElement && active.matches(NATIVE_ACTIVATION_SELECTOR)) return
           event.preventDefault()
           handlersRef.current.onSpin()
           break
+        }
         case 'f':
         case 'F':
           event.preventDefault()

@@ -57,12 +57,12 @@ export default function EntryList({ entries, onUpdateEntry, onRemoveEntry, disab
       onUpdateEntry(id, { image: cropped })
       setError(null)
     } catch {
-      setError('Could not process that image.')
+      setError(`Could not process "${file.name}" - it may be too large or an unsupported format.`)
     }
   }
 
   if (entries.length === 0) {
-    return <p className="text-sm text-neutral-500">No entries yet — add some names to get started.</p>
+    return <p className="text-sm text-neutral-400">No entries yet — add some names to get started.</p>
   }
 
   return (
@@ -95,21 +95,10 @@ export default function EntryList({ entries, onUpdateEntry, onRemoveEntry, disab
                 type="button"
                 onClick={() => startEditing(entry)}
                 disabled={disabled}
-                className="min-w-0 flex-1 truncate text-left text-sm disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label={`Rename ${entry.name}`}
+                className="min-w-0 flex-1 truncate text-left text-sm hover:underline disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:no-underline"
               >
                 {entry.name}
-              </button>
-            )}
-
-            {editingId !== entry.id && (
-              <button
-                type="button"
-                onClick={() => startEditing(entry)}
-                disabled={disabled}
-                aria-label={`Rename ${entry.name}`}
-                className="flex-shrink-0 text-neutral-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                ✎
               </button>
             )}
 
@@ -127,7 +116,7 @@ export default function EntryList({ entries, onUpdateEntry, onRemoveEntry, disab
               onClick={() => onRemoveEntry(entry.id)}
               disabled={disabled}
               aria-label={`Remove ${entry.name}`}
-              className="flex-shrink-0 text-neutral-500 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex-shrink-0 text-red-400/80 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
             >
               ✕
             </button>

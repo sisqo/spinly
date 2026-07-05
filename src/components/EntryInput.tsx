@@ -22,7 +22,7 @@ export default function EntryInput({ onAdd, disabled = false }: EntryInputProps)
         placeholder="One name per line"
         rows={8}
         disabled={disabled}
-        className="w-full rounded-lg bg-neutral-800 text-white p-3 resize-none placeholder:text-neutral-500 disabled:cursor-not-allowed disabled:opacity-40"
+        className="w-full rounded-lg bg-neutral-800 text-white p-3 resize-none placeholder:text-neutral-400 disabled:cursor-not-allowed disabled:opacity-40"
       />
       <button
         type="button"

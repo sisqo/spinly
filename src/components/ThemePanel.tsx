@@ -56,8 +56,8 @@ export default function ThemePanel({ settings, onUpdateSettings }: ThemePanelPro
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">Theme</h3>
+      <div className="flex flex-col gap-2 border-t border-neutral-800 pt-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Theme</h3>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {THEMES.map((theme) => {
             const selected = settings.themeId === theme.id
@@ -84,9 +84,9 @@ export default function ThemePanel({ settings, onUpdateSettings }: ThemePanelPro
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 border-t border-neutral-800 pt-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">Segment colors</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Segment colors</h3>
           {isCustom && (
             <button type="button" onClick={resetToTheme} className="text-xs text-neutral-400 hover:text-white">
               Reset to theme
@@ -110,7 +110,7 @@ export default function ThemePanel({ settings, onUpdateSettings }: ThemePanelPro
                   type="button"
                   onClick={() => removeColor(index)}
                   aria-label={`Remove color ${index + 1}`}
-                  className="absolute -right-1.5 -top-1.5 hidden h-5 w-5 items-center justify-center rounded-full bg-neutral-700 text-xs text-white hover:bg-red-500 group-hover:flex"
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-neutral-700 text-xs text-white opacity-60 transition-opacity hover:bg-red-500 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white group-hover:opacity-100"
                 >
                   ✕
                 </button>

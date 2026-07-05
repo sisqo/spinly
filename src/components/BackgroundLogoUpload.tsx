@@ -21,7 +21,7 @@ export default function BackgroundLogoUpload({ settings, onUpdateSettings }: Bac
       onUpdateSettings({ backgroundImage: dataUrl })
       setError(null)
     } catch {
-      setError('Could not process that image.')
+      setError(`Could not process "${file.name}" - it may be too large or an unsupported format.`)
     }
   }
 
@@ -34,14 +34,14 @@ export default function BackgroundLogoUpload({ settings, onUpdateSettings }: Bac
       onUpdateSettings({ centerLogo: dataUrl })
       setError(null)
     } catch {
-      setError('Could not process that image.')
+      setError(`Could not process "${file.name}" - it may be too large or an unsupported format.`)
     }
   }
 
   return (
     <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">Background image</h3>
+      <div className="flex flex-col gap-2 border-t border-neutral-800 pt-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Background image</h3>
         <div className="flex items-center gap-3">
           {settings.backgroundImage ? (
             <img
@@ -80,8 +80,8 @@ export default function BackgroundLogoUpload({ settings, onUpdateSettings }: Bac
         </div>
       </div>
 
-      <div className="flex flex-col gap-2">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">Wheel center logo</h3>
+      <div className="flex flex-col gap-2 border-t border-neutral-800 pt-4">
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">Wheel center logo</h3>
         <div className="flex items-center gap-3">
           {settings.centerLogo ? (
             <img src={settings.centerLogo} alt="Logo preview" className="h-14 w-14 rounded-full object-cover" />

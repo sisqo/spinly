@@ -86,17 +86,6 @@ export function useSpinlyStore() {
     })
   }, [])
 
-  const restoreAllRemoved = useCallback(() => {
-    setState((s) => {
-      if (s.removedEntries.length === 0) return s
-      return {
-        ...s,
-        entries: [...s.entries, ...s.removedEntries],
-        removedEntries: [],
-      }
-    })
-  }, [])
-
   const setEntries = useCallback((entries: Entry[]) => {
     setState((s) => ({ ...s, entries }))
   }, [])
@@ -132,7 +121,6 @@ export function useSpinlyStore() {
     entries: state.entries,
     settings: state.settings,
     history: state.history,
-    removedEntries: state.removedEntries,
     storageError,
     addEntries,
     addEntriesWithImages,
@@ -141,7 +129,6 @@ export function useSpinlyStore() {
     clearEntries,
     removeWinnerEntry,
     restoreLastRemoved,
-    restoreAllRemoved,
     setEntries,
     shuffleEntries,
     sortEntriesAZ,

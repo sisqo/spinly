@@ -24,13 +24,21 @@ import type { Entry } from './types'
 const INTRO_SESSION_KEY = 'spinly-intro-shown'
 const MIN_SPIN_SECONDS = 2
 const MAX_SPIN_SECONDS = 15
+const REMOVED_TOAST_MS = 6000
 
 function App() {
   const store = useSpinlyStore()
   const wheelRef = useRef<WheelCanvasHandle>(null)
   const [winner, setWinner] = useState<Entry | null>(null)
+  const [removedToast, setRemovedToast] = useState<{ name: string } | null>(null)
+  const removedToastTimeoutRef = useRef<number | null>(null)
+  const undoButtonRef = useRef<HTMLButtonElement>(null)
   const [showIntro, setShowIntro] = useState(
     () => typeof window !== 'undefined' && sessionStorage.getItem(INTRO_SESSION_KEY) !== '1',
+  )
+  const prefersReducedMotion = useMemo(
+    () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+    [],
   )
 
   const { playTick, playFanfare, primeAudio } = useSpinAudio(store.settings.muted)
@@ -87,14 +95,49 @@ function App() {
     setWinner(null)
   }, [])
 
+  const clearRemovedToastTimeout = useCallback(() => {
+    if (removedToastTimeoutRef.current !== null) {
+      window.clearTimeout(removedToastTimeoutRef.current)
+      removedToastTimeoutRef.current = null
+    }
+  }, [])
+
+  // The toast is the sole recovery path back to restoreLastRemoved (there's no
+  // Restore button left in the toolbar), so a fixed auto-dismiss with no way
+  // to pause it would fail WCAG 2.2.1 for anyone who can't read+act within
+  // REMOVED_TOAST_MS. Pausing on hover/focus (and restarting the full window
+  // on leave/blur) keeps it dismissable-by-default while staying open as long
+  // as the user is actually engaging with it.
+  const scheduleRemovedToastDismiss = useCallback(() => {
+    clearRemovedToastTimeout()
+    removedToastTimeoutRef.current = window.setTimeout(() => setRemovedToast(null), REMOVED_TOAST_MS)
+  }, [clearRemovedToastTimeout])
+
   const handleRemoveAndClose = useCallback(() => {
-    if (winner) store.removeWinnerEntry(winner)
+    if (winner) {
+      store.removeWinnerEntry(winner)
+      setRemovedToast({ name: winner.name })
+      scheduleRemovedToastDismiss()
+    }
     setWinner(null)
-  }, [winner, store])
+  }, [winner, store, scheduleRemovedToastDismiss])
+
+  const handleUndoRemove = useCallback(() => {
+    clearRemovedToastTimeout()
+    store.restoreLastRemoved()
+    setRemovedToast(null)
+  }, [store, clearRemovedToastTimeout])
+
+  useEffect(() => {
+    // Moves focus to the one control that acts on this toast as soon as it
+    // appears, so a keyboard/screen-reader user's very next stop is Undo
+    // rather than wherever the now-unmounted winner modal left focus.
+    if (removedToast) undoButtonRef.current?.focus()
+  }, [removedToast])
+
+  useEffect(() => clearRemovedToastTimeout, [clearRemovedToastTimeout])
 
   const handleClearAll = useCallback(() => {
-    if (store.entries.length === 0) return
-    if (typeof window !== 'undefined' && !window.confirm('Remove all entries from the wheel?')) return
     store.clearEntries()
   }, [store])
 
@@ -136,6 +179,12 @@ function App() {
       }
     : { backgroundColor: activeTheme.background }
 
+  // Keeps .spinly-sidebar-scroll's fade "cover" gradient (src/index.css)
+  // matching whatever background actually shows through the sidebar, instead
+  // of a hardcoded color that only lined up with the default Classic theme.
+  const sidebarScrollShadowColor = store.settings.backgroundImage ? 'rgba(0,0,0,0.55)' : activeTheme.background
+  const sidebarScrollStyle = { '--spinly-scroll-shadow': sidebarScrollShadowColor } as CSSProperties
+
   const wheelHint =
     store.entries.length < 2
       ? 'Add at least two names to spin'
@@ -153,11 +202,13 @@ function App() {
         }`}
       >
         <header className="sticky top-0 z-40 flex w-full items-center justify-between bg-neutral-950/70 py-1 backdrop-blur-sm">
-          {!store.settings.hideBranding && (
+          {!store.settings.hideBranding ? (
             <div className="flex items-center gap-3">
               <img src="/spinly-logo.svg" alt="" className="h-11 w-11" />
               <h1 className="text-2xl font-bold tracking-tight">Spinly</h1>
             </div>
+          ) : (
+            <h1 className="sr-only">Spinly</h1>
           )}
           <div className="flex gap-2 ms-auto">
             <button
@@ -183,8 +234,10 @@ function App() {
 
         <div className="flex flex-1 min-h-0 flex-col gap-6 md:flex-row md:items-stretch">
           <div className="flex min-h-[60vh] flex-1 min-w-0 flex-col items-center gap-3">
-            {store.settings.title && (
+            {store.settings.title ? (
               <h2 className="text-center text-xl font-semibold md:text-2xl">{store.settings.title}</h2>
+            ) : (
+              <h2 className="sr-only">Spinly wheel</h2>
             )}
             <WheelCanvas
               ref={wheelRef}
@@ -201,9 +254,12 @@ function App() {
           </div>
 
           {!isFullscreen && (
-            <div className="flex w-full flex-col gap-4 md:w-96 md:flex-shrink-0 md:overflow-y-auto">
+            <div
+              className="spinly-sidebar-scroll flex w-full flex-col gap-4 md:w-96 md:flex-shrink-0 md:overflow-y-auto"
+              style={sidebarScrollStyle}
+            >
               <details open className="flex flex-col gap-3">
-                <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wide text-neutral-400">
+                <summary className="cursor-pointer text-base font-bold tracking-tight text-white">
                   General
                 </summary>
                 <div className="flex flex-col gap-6 pt-1">
@@ -217,7 +273,7 @@ function App() {
                       value={store.settings.title}
                       onChange={(e) => store.updateSettings({ title: e.target.value })}
                       placeholder="e.g. Who goes first?"
-                      className="w-full rounded-lg bg-neutral-800 px-3 py-2 text-sm text-white placeholder:text-neutral-500"
+                      className="w-full rounded-lg bg-neutral-800 px-3 py-2 text-sm text-white placeholder:text-neutral-400"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
@@ -236,18 +292,15 @@ function App() {
                     />
                   </div>
 
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 border-t border-neutral-800 pt-4">
                     <EntryInput onAdd={store.addEntries} disabled={isSpinning} />
                     <AddFromImagesButton onAdd={store.addEntriesWithImages} disabled={isSpinning} />
                     <EntryToolbar
                       onShuffle={store.shuffleEntries}
                       onSortAZ={store.sortEntriesAZ}
                       onClearAll={handleClearAll}
-                      onRestoreLast={store.restoreLastRemoved}
-                      onRestoreAll={store.restoreAllRemoved}
-                      canRestoreLast={store.removedEntries.length > 0}
-                      canRestoreAll={store.removedEntries.length > 0}
                       disabled={isSpinning}
+                      hasEntries={store.entries.length > 0}
                     />
                     <EntryList
                       entries={store.entries}
@@ -258,15 +311,15 @@ function App() {
                     {store.storageError && <p className="text-sm text-amber-400">{store.storageError}</p>}
                   </div>
 
-                  <div className="flex flex-col gap-3">
-                    <h3 className="text-sm font-semibold uppercase tracking-wide text-neutral-400">History</h3>
+                  <div className="flex flex-col gap-3 border-t border-neutral-800 pt-4">
+                    <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">History</h3>
                     <HistoryPanel history={store.history} />
                   </div>
                 </div>
               </details>
 
               <details className="flex flex-col gap-3">
-                <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wide text-neutral-400">
+                <summary className="cursor-pointer text-base font-bold tracking-tight text-white">
                   Graphic
                 </summary>
                 <div className="flex flex-col gap-4 pt-1">
@@ -308,7 +361,7 @@ function App() {
           <SeoBlurb />
           <footer className="flex flex-col items-center gap-2 pt-2">
             <KofiButton />
-            <p className="text-sm text-neutral-500">
+            <p className="text-sm text-neutral-400">
               by{' '}
               <a
                 href="https://sisqo.dev"
@@ -324,6 +377,39 @@ function App() {
       )}
 
       <WinnerModal winner={winner} onClose={handleCloseWinner} onRemoveAndClose={handleRemoveAndClose} />
+
+      {removedToast && (
+        <>
+          <style>{`
+            @keyframes spinly-toast-in {
+              from { opacity: 0; transform: translateY(8px); }
+              to { opacity: 1; transform: translateY(0); }
+            }
+          `}</style>
+          <div
+            role="status"
+            aria-live="polite"
+            className="fixed inset-x-0 bottom-6 z-50 mx-auto flex w-fit max-w-[90vw] items-center gap-3 rounded-lg bg-neutral-800 px-4 py-2.5 text-sm text-white"
+            style={{ animation: prefersReducedMotion ? undefined : 'spinly-toast-in 0.2s ease-out' }}
+            onMouseEnter={clearRemovedToastTimeout}
+            onMouseLeave={scheduleRemovedToastDismiss}
+            onFocus={clearRemovedToastTimeout}
+            onBlur={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) scheduleRemovedToastDismiss()
+            }}
+          >
+            <span className="truncate">Removed {removedToast.name}</span>
+            <button
+              ref={undoButtonRef}
+              type="button"
+              onClick={handleUndoRemove}
+              className="flex-shrink-0 font-medium underline underline-offset-2 hover:text-neutral-200"
+            >
+              Undo
+            </button>
+          </div>
+        </>
+      )}
     </div>
   )
 }

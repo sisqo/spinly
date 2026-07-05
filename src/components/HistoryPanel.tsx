@@ -15,7 +15,7 @@ function formatTimestamp(timestamp: number): string {
 
 export default function HistoryPanel({ history }: HistoryPanelProps) {
   if (history.length === 0) {
-    return <p className="text-sm text-neutral-500">No spins yet</p>
+    return <p className="text-sm text-neutral-400">No spins yet</p>
   }
 
   return (
@@ -34,7 +34,7 @@ export default function HistoryPanel({ history }: HistoryPanelProps) {
           )}
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="truncate text-sm font-medium">{record.name}</span>
-            <span className="text-xs text-neutral-500">{formatTimestamp(record.timestamp)}</span>
+            <span className="text-xs text-neutral-400">{formatTimestamp(record.timestamp)}</span>
           </div>
         </li>
       ))}
