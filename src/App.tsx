@@ -35,21 +35,7 @@ function App() {
   const [showIntro, setShowIntro] = useState(
     () => typeof window !== 'undefined' && sessionStorage.getItem(INTRO_SESSION_KEY) !== '1',
   )
-  const [isSettingsOpen, setIsSettingsOpen] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches,
-  )
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const mql = window.matchMedia('(min-width: 768px)')
-    // Only resyncs to the breakpoint's own default when the breakpoint is
-    // actually crossed (not on every resize) — otherwise an open desktop
-    // drawer would silently turn into an unrequested full-screen mobile sheet
-    // mid-interaction the moment a window is narrowed past 768px.
-    const handleChange = (e: MediaQueryListEvent) => setIsSettingsOpen(e.matches)
-    mql.addEventListener('change', handleChange)
-    return () => mql.removeEventListener('change', handleChange)
-  }, [])
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const prefersReducedMotion = useMemo(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     [],

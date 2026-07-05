@@ -1,8 +1,9 @@
+import { useRef } from 'react'
 import ToggleSwitch from './ToggleSwitch'
 import ThemePanel from './ThemePanel'
 import BackgroundLogoUpload from './BackgroundLogoUpload'
 import { useArmedConfirm } from '../hooks/useArmedConfirm'
-import { MIN_SPIN_SECONDS, MAX_SPIN_SECONDS } from '../lib/constants'
+import { MIN_SPIN_SECONDS, MAX_SPIN_SECONDS, MIN_FONT_SCALE, MAX_FONT_SCALE, FONT_SCALE_STEP } from '../lib/constants'
 import type { SpinlySettings } from '../types'
 
 interface SettingsPanelProps {
@@ -19,6 +20,41 @@ export default function SettingsPanel({
   onResetDefaults,
 }: SettingsPanelProps) {
   const { armed, trigger, pauseAutoDisarm, resumeAutoDisarm } = useArmedConfirm(onResetDefaults)
+  const fontScaleInputRef = useRef<HTMLInputElement>(null)
+
+  // Chromium's native <input type="range"> abandons its own touch-drag
+  // tracking mid-gesture once a touchmove strays far enough perpendicular to
+  // the track (easy to trigger with a real finger on a slider this thin) -
+  // confirmed via direct touch-event simulation, reproducing even on a bare
+  // range input with no scrollable ancestor at all, and unaffected by
+  // touch-action. Once abandoned, the thumb freezes for the rest of the
+  // drag: it only ever "worked on click", never on a real touch drag.
+  // touch-action: none (below) stops the page from stealing the gesture for
+  // scrolling, but doesn't rescue the native tracking - so for touch
+  // pointers specifically we take over value computation ourselves from a
+  // captured pointer's clientX, bypassing the native drag logic entirely.
+  // Mouse/pen/keyboard interaction is untouched and keeps working exactly as
+  // before.
+  const setFontScaleFromClientX = (clientX: number) => {
+    const el = fontScaleInputRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const fraction = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+    const raw = MIN_FONT_SCALE + fraction * (MAX_FONT_SCALE - MIN_FONT_SCALE)
+    const stepped = Math.round(raw / FONT_SCALE_STEP) * FONT_SCALE_STEP
+    onUpdateSettings({ labelFontScale: Math.round(stepped * 100) / 100 })
+  }
+
+  const handleFontScalePointerDown = (e: React.PointerEvent<HTMLInputElement>) => {
+    if (e.pointerType !== 'touch') return
+    e.currentTarget.setPointerCapture(e.pointerId)
+    setFontScaleFromClientX(e.clientX)
+  }
+
+  const handleFontScalePointerMove = (e: React.PointerEvent<HTMLInputElement>) => {
+    if (e.pointerType !== 'touch' || !e.currentTarget.hasPointerCapture(e.pointerId)) return
+    setFontScaleFromClientX(e.clientX)
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -60,7 +96,7 @@ export default function SettingsPanel({
           id="spinly-hide-branding"
           checked={settings.hideBranding}
           onChange={(checked) => onUpdateSettings({ hideBranding: checked })}
-          label="Hide logo and title"
+          label="Hide Spinly logo"
         />
         <div className="flex flex-col gap-1">
           <label htmlFor="spinly-font-scale" className="text-sm text-neutral-300">
@@ -68,13 +104,16 @@ export default function SettingsPanel({
           </label>
           <input
             id="spinly-font-scale"
+            ref={fontScaleInputRef}
             type="range"
-            min={0.5}
-            max={2}
-            step={0.1}
+            min={MIN_FONT_SCALE}
+            max={MAX_FONT_SCALE}
+            step={FONT_SCALE_STEP}
             value={settings.labelFontScale}
             onChange={(e) => onUpdateSettings({ labelFontScale: parseFloat(e.target.value) })}
-            className="w-full"
+            onPointerDown={handleFontScalePointerDown}
+            onPointerMove={handleFontScalePointerMove}
+            className="w-full touch-none"
           />
         </div>
         <ThemePanel settings={settings} onUpdateSettings={onUpdateSettings} />
