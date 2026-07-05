@@ -6,12 +6,12 @@ import EntryList from './components/EntryList'
 import EntryToolbar from './components/EntryToolbar'
 import HistoryPanel from './components/HistoryPanel'
 import WinnerModal from './components/WinnerModal'
-import ThemePanel from './components/ThemePanel'
-import BackgroundLogoUpload from './components/BackgroundLogoUpload'
+import SettingsDrawer from './components/SettingsDrawer'
+import SettingsPanel from './components/SettingsPanel'
 import IntroAnimation from './components/IntroAnimation'
 import SeoBlurb from './components/SeoBlurb'
 import KofiButton from './components/KofiButton'
-import { SpeakerIcon, SpeakerMutedIcon, ExpandIcon, CompressIcon } from './components/icons'
+import { SpeakerIcon, SpeakerMutedIcon, ExpandIcon, CompressIcon, SettingsIcon } from './components/icons'
 import { useSpinlyStore } from './hooks/useSpinlyStore'
 import { useSpin } from './hooks/useSpin'
 import { useSpinAudio } from './hooks/useSpinAudio'
@@ -19,11 +19,10 @@ import { useFullscreen } from './hooks/useFullscreen'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { THEMES, resolveActiveColors } from './lib/themes'
 import { fireWinnerConfetti } from './lib/confetti'
-import type { Entry } from './types'
+import { MIN_SPIN_SECONDS, MAX_SPIN_SECONDS } from './lib/constants'
+import { DEFAULT_SETTINGS, type Entry } from './types'
 
 const INTRO_SESSION_KEY = 'spinly-intro-shown'
-const MIN_SPIN_SECONDS = 2
-const MAX_SPIN_SECONDS = 15
 const REMOVED_TOAST_MS = 6000
 
 function App() {
@@ -36,6 +35,21 @@ function App() {
   const [showIntro, setShowIntro] = useState(
     () => typeof window !== 'undefined' && sessionStorage.getItem(INTRO_SESSION_KEY) !== '1',
   )
+  const [isSettingsOpen, setIsSettingsOpen] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches,
+  )
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const mql = window.matchMedia('(min-width: 768px)')
+    // Only resyncs to the breakpoint's own default when the breakpoint is
+    // actually crossed (not on every resize) — otherwise an open desktop
+    // drawer would silently turn into an unrequested full-screen mobile sheet
+    // mid-interaction the moment a window is narrowed past 768px.
+    const handleChange = (e: MediaQueryListEvent) => setIsSettingsOpen(e.matches)
+    mql.addEventListener('change', handleChange)
+    return () => mql.removeEventListener('change', handleChange)
+  }, [])
   const prefersReducedMotion = useMemo(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     [],
@@ -164,11 +178,30 @@ function App() {
     [store],
   )
 
+  const handleResetDefaults = useCallback(() => {
+    store.updateSettings({
+      themeId: DEFAULT_SETTINGS.themeId,
+      customColors: DEFAULT_SETTINGS.customColors,
+      backgroundImage: DEFAULT_SETTINGS.backgroundImage,
+      centerLogo: DEFAULT_SETTINGS.centerLogo,
+      title: DEFAULT_SETTINGS.title,
+      spinDurationMs: DEFAULT_SETTINGS.spinDurationMs,
+      labelFontScale: DEFAULT_SETTINGS.labelFontScale,
+      hideBranding: DEFAULT_SETTINGS.hideBranding,
+    })
+  }, [store])
+
+  const handleCloseSettings = useCallback(() => {
+    setIsSettingsOpen(false)
+  }, [])
+
   useKeyboardShortcuts({
     onSpin: handleSpin,
     onToggleFullscreen: toggleFullscreen,
     onToggleMute: handleToggleMute,
     onExitFullscreen: handleExitFullscreen,
+    onCloseSettings: handleCloseSettings,
+    isSettingsOpen,
   })
 
   const pageStyle: CSSProperties = store.settings.backgroundImage
@@ -229,6 +262,15 @@ function App() {
             >
               {isFullscreen ? <CompressIcon className="h-5 w-5" /> : <ExpandIcon className="h-5 w-5" />}
             </button>
+            <button
+              type="button"
+              onClick={() => setIsSettingsOpen((open) => !open)}
+              aria-label="Settings"
+              aria-expanded={isSettingsOpen}
+              className="rounded-full bg-neutral-800/80 p-2.5 hover:bg-neutral-700"
+            >
+              <SettingsIcon className="h-5 w-5" />
+            </button>
           </div>
         </header>
 
@@ -258,99 +300,29 @@ function App() {
               className="spinly-sidebar-scroll flex w-full flex-col gap-4 md:w-96 md:flex-shrink-0 md:overflow-y-auto"
               style={sidebarScrollStyle}
             >
-              <details open className="flex flex-col gap-3">
-                <summary className="cursor-pointer text-base font-bold tracking-tight text-white">
-                  General
-                </summary>
-                <div className="flex flex-col gap-6 pt-1">
-                  <div className="flex flex-col gap-1">
-                    <label htmlFor="spinly-title" className="text-sm text-neutral-300">
-                      Title
-                    </label>
-                    <input
-                      id="spinly-title"
-                      type="text"
-                      value={store.settings.title}
-                      onChange={(e) => store.updateSettings({ title: e.target.value })}
-                      placeholder="e.g. Who goes first?"
-                      className="w-full rounded-lg bg-neutral-800 px-3 py-2 text-sm text-white placeholder:text-neutral-400"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1">
-                    <label htmlFor="spinly-duration" className="text-sm text-neutral-300">
-                      Spin duration (seconds)
-                    </label>
-                    <input
-                      id="spinly-duration"
-                      type="number"
-                      min={MIN_SPIN_SECONDS}
-                      max={MAX_SPIN_SECONDS}
-                      step={0.5}
-                      value={store.settings.spinDurationMs / 1000}
-                      onChange={handleDurationChange}
-                      className="w-24 rounded-lg bg-neutral-800 px-3 py-2 text-sm text-white"
-                    />
-                  </div>
+              <div className="flex flex-col gap-3">
+                <EntryInput onAdd={store.addEntries} disabled={isSpinning} />
+                <AddFromImagesButton onAdd={store.addEntriesWithImages} disabled={isSpinning} />
+                <EntryToolbar
+                  onShuffle={store.shuffleEntries}
+                  onSortAZ={store.sortEntriesAZ}
+                  onClearAll={handleClearAll}
+                  disabled={isSpinning}
+                  hasEntries={store.entries.length > 0}
+                />
+                <EntryList
+                  entries={store.entries}
+                  onUpdateEntry={store.updateEntry}
+                  onRemoveEntry={store.removeEntry}
+                  disabled={isSpinning}
+                />
+                {store.storageError && <p className="text-sm text-amber-400">{store.storageError}</p>}
+              </div>
 
-                  <div className="flex flex-col gap-3 border-t border-neutral-800 pt-4">
-                    <EntryInput onAdd={store.addEntries} disabled={isSpinning} />
-                    <AddFromImagesButton onAdd={store.addEntriesWithImages} disabled={isSpinning} />
-                    <EntryToolbar
-                      onShuffle={store.shuffleEntries}
-                      onSortAZ={store.sortEntriesAZ}
-                      onClearAll={handleClearAll}
-                      disabled={isSpinning}
-                      hasEntries={store.entries.length > 0}
-                    />
-                    <EntryList
-                      entries={store.entries}
-                      onUpdateEntry={store.updateEntry}
-                      onRemoveEntry={store.removeEntry}
-                      disabled={isSpinning}
-                    />
-                    {store.storageError && <p className="text-sm text-amber-400">{store.storageError}</p>}
-                  </div>
-
-                  <div className="flex flex-col gap-3 border-t border-neutral-800 pt-4">
-                    <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">History</h3>
-                    <HistoryPanel history={store.history} />
-                  </div>
-                </div>
-              </details>
-
-              <details className="flex flex-col gap-3">
-                <summary className="cursor-pointer text-base font-bold tracking-tight text-white">
-                  Graphic
-                </summary>
-                <div className="flex flex-col gap-4 pt-1">
-                  <div className="flex flex-col gap-1">
-                    <label htmlFor="spinly-font-scale" className="text-sm text-neutral-300">
-                      Label font size ({Math.round(store.settings.labelFontScale * 100)}%)
-                    </label>
-                    <input
-                      id="spinly-font-scale"
-                      type="range"
-                      min={0.5}
-                      max={2}
-                      step={0.1}
-                      value={store.settings.labelFontScale}
-                      onChange={(e) => store.updateSettings({ labelFontScale: parseFloat(e.target.value) })}
-                      className="w-full"
-                    />
-                  </div>
-                  <label className="flex items-center gap-2 text-sm text-neutral-300">
-                    <input
-                      type="checkbox"
-                      checked={store.settings.hideBranding}
-                      onChange={(e) => store.updateSettings({ hideBranding: e.target.checked })}
-                      className="h-4 w-4 rounded border-neutral-600 bg-neutral-800 accent-white"
-                    />
-                    Hide logo and title
-                  </label>
-                  <ThemePanel settings={store.settings} onUpdateSettings={store.updateSettings} />
-                  <BackgroundLogoUpload settings={store.settings} onUpdateSettings={store.updateSettings} />
-                </div>
-              </details>
+              <div className="flex flex-col gap-3 border-t border-neutral-800 pt-4">
+                <h3 className="text-xs font-semibold uppercase tracking-wide text-neutral-400">History</h3>
+                <HistoryPanel history={store.history} />
+              </div>
             </div>
           )}
         </div>
@@ -377,6 +349,15 @@ function App() {
       )}
 
       <WinnerModal winner={winner} onClose={handleCloseWinner} onRemoveAndClose={handleRemoveAndClose} />
+
+      <SettingsDrawer open={isSettingsOpen} onClose={handleCloseSettings}>
+        <SettingsPanel
+          settings={store.settings}
+          onUpdateSettings={store.updateSettings}
+          onDurationChange={handleDurationChange}
+          onResetDefaults={handleResetDefaults}
+        />
+      </SettingsDrawer>
 
       {removedToast && (
         <>
