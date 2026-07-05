@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useArmedConfirm } from '../hooks/useArmedConfirm'
 
 interface EntryToolbarProps {
   onShuffle: () => void
@@ -8,8 +8,6 @@ interface EntryToolbarProps {
   hasEntries?: boolean
 }
 
-const CLEAR_CONFIRM_WINDOW_MS = 3000
-
 export default function EntryToolbar({
   onShuffle,
   onSortAZ,
@@ -17,33 +15,13 @@ export default function EntryToolbar({
   disabled = false,
   hasEntries = true,
 }: EntryToolbarProps) {
-  const [armed, setArmed] = useState(false)
-  const armedTimeoutRef = useRef<number | null>(null)
-
-  const disarm = () => {
-    if (armedTimeoutRef.current !== null) {
-      window.clearTimeout(armedTimeoutRef.current)
-      armedTimeoutRef.current = null
-    }
-    setArmed(false)
-  }
-
-  useEffect(() => {
-    if (armed && (disabled || !hasEntries)) disarm()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [disabled, hasEntries])
-
-  useEffect(() => () => disarm(), [])
+  const { armed, trigger, pauseAutoDisarm, resumeAutoDisarm } = useArmedConfirm(onClearAll, {
+    disarmWhen: disabled || !hasEntries,
+  })
 
   const handleClearClick = () => {
     if (!hasEntries) return
-    if (armed) {
-      disarm()
-      onClearAll()
-      return
-    }
-    setArmed(true)
-    armedTimeoutRef.current = window.setTimeout(disarm, CLEAR_CONFIRM_WINDOW_MS)
+    trigger()
   }
 
   return (
@@ -67,6 +45,12 @@ export default function EntryToolbar({
       <button
         type="button"
         onClick={handleClearClick}
+        onMouseEnter={pauseAutoDisarm}
+        onMouseLeave={resumeAutoDisarm}
+        onFocus={pauseAutoDisarm}
+        onBlur={(e) => {
+          if (!e.currentTarget.contains(e.relatedTarget as Node | null)) resumeAutoDisarm()
+        }}
         disabled={disabled}
         aria-label={armed ? 'Confirm clear? This removes all entries from the wheel' : 'Clear all entries'}
         className={

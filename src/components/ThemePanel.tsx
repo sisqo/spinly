@@ -1,3 +1,4 @@
+import ColorSwatch from './ColorSwatch'
 import { THEMES, resolveActiveColors } from '../lib/themes'
 import { cryptoRandom01 } from '../lib/wheelMath'
 import type { SpinlySettings } from '../types'
@@ -95,27 +96,14 @@ export default function ThemePanel({ settings, onUpdateSettings }: ThemePanelPro
         </div>
         <div className="flex flex-wrap gap-2">
           {activeColors.map((color, index) => (
-            <div key={index} className="group relative h-10 w-10">
-              <div className="h-10 w-10 overflow-hidden rounded-lg border border-neutral-700">
-                <input
-                  type="color"
-                  value={color}
-                  onChange={(e) => updateColorAt(index, e.target.value)}
-                  aria-label={`Segment color ${index + 1}`}
-                  className="h-full w-full cursor-pointer border-0 bg-transparent p-0"
-                />
-              </div>
-              {activeColors.length > MIN_COLORS && (
-                <button
-                  type="button"
-                  onClick={() => removeColor(index)}
-                  aria-label={`Remove color ${index + 1}`}
-                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-neutral-700 text-xs text-white opacity-60 transition-opacity hover:bg-red-500 hover:opacity-100 focus-visible:opacity-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white group-hover:opacity-100"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
+            <ColorSwatch
+              key={index}
+              color={color}
+              onChange={(hex) => updateColorAt(index, hex)}
+              label={`Segment color ${index + 1}`}
+              onRemove={activeColors.length > MIN_COLORS ? () => removeColor(index) : undefined}
+              removeLabel={activeColors.length > MIN_COLORS ? `Remove color ${index + 1}` : undefined}
+            />
           ))}
           <button
             type="button"

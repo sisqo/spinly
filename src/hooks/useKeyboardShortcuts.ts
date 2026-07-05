@@ -5,6 +5,8 @@ export interface KeyboardShortcutHandlers {
   onToggleFullscreen: () => void
   onToggleMute: () => void
   onExitFullscreen: () => void
+  onCloseSettings: () => void
+  isSettingsOpen: boolean
 }
 
 // Elements that natively activate on their own Enter/Space keydown (the
@@ -25,6 +27,21 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
       if (event.ctrlKey || event.metaKey || event.altKey) return
 
       const active = document.activeElement
+
+      // Escape must close the settings panel / exit fullscreen regardless of
+      // where focus is — including from inside the settings drawer's own
+      // text fields — unlike Space/Enter/F/M, which genuinely need to defer
+      // to typing in an editable field.
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        if (handlersRef.current.isSettingsOpen) {
+          handlersRef.current.onCloseSettings()
+        } else {
+          handlersRef.current.onExitFullscreen()
+        }
+        return
+      }
+
       const isEditable =
         active instanceof HTMLInputElement ||
         active instanceof HTMLTextAreaElement ||
@@ -48,10 +65,6 @@ export function useKeyboardShortcuts(handlers: KeyboardShortcutHandlers) {
         case 'M':
           event.preventDefault()
           handlersRef.current.onToggleMute()
-          break
-        case 'Escape':
-          event.preventDefault()
-          handlersRef.current.onExitFullscreen()
           break
       }
     }
