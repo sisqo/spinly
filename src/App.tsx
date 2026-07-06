@@ -25,6 +25,7 @@ import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import { useQuizShow } from './hooks/useQuizShow'
 import { THEMES, resolveActiveColors } from './lib/themes'
 import { fireWinnerConfetti } from './lib/confetti'
+import { createSampleEntries } from './lib/sampleEntries'
 import { MIN_SPIN_SECONDS, MAX_SPIN_SECONDS } from './lib/constants'
 import { DEFAULT_SETTINGS, type Entry } from './types'
 
@@ -200,6 +201,10 @@ function App() {
     store.clearEntries()
   }, [store])
 
+  const handleResetToSample = useCallback(() => {
+    store.setEntries(createSampleEntries())
+  }, [store])
+
   const handleIntroDone = useCallback(() => {
     if (typeof window !== 'undefined') sessionStorage.setItem(INTRO_SESSION_KEY, '1')
     setShowIntro(false)
@@ -370,6 +375,7 @@ function App() {
                 <EntryToolbar
                   onShuffle={store.shuffleEntries}
                   onSortAZ={store.sortEntriesAZ}
+                  onResetSample={handleResetToSample}
                   onClearAll={handleClearAll}
                   disabled={isSpinning || quiz.isLocked}
                   hasEntries={store.entries.length > 0}
