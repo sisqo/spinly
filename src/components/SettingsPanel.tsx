@@ -11,6 +11,7 @@ interface SettingsPanelProps {
   onUpdateSettings: (patch: Partial<SpinlySettings>) => void
   onDurationChange: (e: React.ChangeEvent<HTMLInputElement>) => void
   onResetDefaults: () => void
+  quizShowModeDisabled: boolean
 }
 
 export default function SettingsPanel({
@@ -18,6 +19,7 @@ export default function SettingsPanel({
   onUpdateSettings,
   onDurationChange,
   onResetDefaults,
+  quizShowModeDisabled,
 }: SettingsPanelProps) {
   const { armed, trigger, pauseAutoDisarm, resumeAutoDisarm } = useArmedConfirm(onResetDefaults)
   const fontScaleInputRef = useRef<HTMLInputElement>(null)
@@ -88,6 +90,13 @@ export default function SettingsPanel({
             className="w-24 rounded-lg bg-neutral-800 px-3 py-2 text-sm text-white"
           />
         </div>
+        <ToggleSwitch
+          id="spinly-quiz-show-mode"
+          checked={settings.quizShowMode}
+          onChange={(checked) => onUpdateSettings({ quizShowMode: checked })}
+          label="Quiz Show Mode"
+          disabled={quizShowModeDisabled}
+        />
       </div>
 
       <div className="flex flex-col gap-4 border-t border-neutral-800 pt-4">

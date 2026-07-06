@@ -9,6 +9,7 @@ export interface WinnerRecord {
   name: string
   image?: string
   timestamp: number
+  position?: number
 }
 
 export interface SpinlySettings {
@@ -21,6 +22,28 @@ export interface SpinlySettings {
   spinDurationMs: number
   labelFontScale: number
   hideBranding: boolean
+  quizShowMode: boolean
+}
+
+export type QuizShowPhase = 'elimination' | 'finalists' | 'results'
+
+export interface QuizShowPlacement {
+  id: string
+  name: string
+  image?: string
+  position: number
+}
+
+export interface QuizShowRun {
+  active: boolean
+  phase: QuizShowPhase
+  placements: QuizShowPlacement[]
+}
+
+export const DEFAULT_QUIZ_SHOW_RUN: QuizShowRun = {
+  active: false,
+  phase: 'elimination',
+  placements: [],
 }
 
 export interface SpinlyState {
@@ -28,6 +51,7 @@ export interface SpinlyState {
   settings: SpinlySettings
   history: WinnerRecord[]
   removedEntries: Entry[]
+  quizShowRun: QuizShowRun
 }
 
 export const DEFAULT_SETTINGS: SpinlySettings = {
@@ -40,4 +64,5 @@ export const DEFAULT_SETTINGS: SpinlySettings = {
   spinDurationMs: 6500,
   labelFontScale: 1,
   hideBranding: false,
+  quizShowMode: false,
 }

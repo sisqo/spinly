@@ -1,4 +1,5 @@
 import type { WinnerRecord } from '../types'
+import { ordinal } from '../lib/ordinal'
 
 interface HistoryPanelProps {
   history: WinnerRecord[]
@@ -34,7 +35,10 @@ export default function HistoryPanel({ history }: HistoryPanelProps) {
           )}
           <div className="flex min-w-0 flex-1 flex-col">
             <span className="truncate text-sm font-medium">{record.name}</span>
-            <span className="text-xs text-neutral-400">{formatTimestamp(record.timestamp)}</span>
+            <span className="text-xs text-neutral-400">
+              {record.position !== undefined ? `${ordinal(record.position)} place · ` : ''}
+              {formatTimestamp(record.timestamp)}
+            </span>
           </div>
         </li>
       ))}

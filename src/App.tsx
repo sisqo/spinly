@@ -6,6 +6,11 @@ import EntryList from './components/EntryList'
 import EntryToolbar from './components/EntryToolbar'
 import HistoryPanel from './components/HistoryPanel'
 import WinnerModal from './components/WinnerModal'
+import RankRevealModal from './components/RankRevealModal'
+import LiveStandingsPanel from './components/LiveStandingsPanel'
+import FinalistCards from './components/FinalistCards'
+import PodiumChoreography from './components/PodiumChoreography'
+import QuizShowResults from './components/QuizShowResults'
 import SettingsDrawer from './components/SettingsDrawer'
 import SettingsPanel from './components/SettingsPanel'
 import IntroAnimation from './components/IntroAnimation'
@@ -17,6 +22,7 @@ import { useSpin } from './hooks/useSpin'
 import { useSpinAudio } from './hooks/useSpinAudio'
 import { useFullscreen } from './hooks/useFullscreen'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
+import { useQuizShow } from './hooks/useQuizShow'
 import { THEMES, resolveActiveColors } from './lib/themes'
 import { fireWinnerConfetti } from './lib/confetti'
 import { MIN_SPIN_SECONDS, MAX_SPIN_SECONDS } from './lib/constants'
@@ -41,7 +47,7 @@ function App() {
     [],
   )
 
-  const { playTick, playFanfare, primeAudio } = useSpinAudio(store.settings.muted)
+  const { playTick, playFanfare, playChime, playDrumroll, primeAudio } = useSpinAudio(store.settings.muted)
   const { isFullscreen, toggleFullscreen } = useFullscreen()
 
   const draw = useCallback((rotation: number) => {
@@ -113,14 +119,54 @@ function App() {
     removedToastTimeoutRef.current = window.setTimeout(() => setRemovedToast(null), REMOVED_TOAST_MS)
   }, [clearRemovedToastTimeout])
 
+  const showRemovedToast = useCallback(
+    (name: string) => {
+      setRemovedToast({ name })
+      scheduleRemovedToastDismiss()
+    },
+    [scheduleRemovedToastDismiss],
+  )
+
   const removeEntryWithToast = useCallback(
     (entry: Entry) => {
       store.removeEntry(entry.id)
-      setRemovedToast({ name: entry.name })
-      scheduleRemovedToastDismiss()
+      showRemovedToast(entry.name)
     },
-    [store, scheduleRemovedToastDismiss],
+    [store, showRemovedToast],
   )
+
+  const quiz = useQuizShow({
+    store,
+    spin,
+    isSpinning,
+    showRemovedToast,
+    playChime,
+    playDrumroll,
+    playFanfare,
+    fireConfetti: fireWinnerConfetti,
+  })
+
+  const handlePrimaryAction = useCallback(() => {
+    if (showIntro || winner || quiz.rankReveal || isSpinning || quiz.podiumRunning) return
+    // Must run synchronously here, before any of the branches below await
+    // anything — this is the one dispatcher behind every click/Space
+    // activation (classic spin, elimination spin, and the podium-reveal
+    // trigger), so priming here covers all three instead of only handleSpin's
+    // own call further down.
+    primeAudio()
+    if (quiz.displayPhase === 'finalists') {
+      quiz.handleRevealPodium()
+      return
+    }
+    if (
+      quiz.displayPhase === 'elimination' &&
+      (store.quizShowRun.active || (store.settings.quizShowMode && store.entries.length >= 4))
+    ) {
+      quiz.handleQuizSpin()
+      return
+    }
+    handleSpin()
+  }, [showIntro, winner, quiz, isSpinning, store, primeAudio, handleSpin])
 
   const handleRemoveAndClose = useCallback(() => {
     if (winner) removeEntryWithToast(winner)
@@ -187,6 +233,7 @@ function App() {
       spinDurationMs: DEFAULT_SETTINGS.spinDurationMs,
       labelFontScale: DEFAULT_SETTINGS.labelFontScale,
       hideBranding: DEFAULT_SETTINGS.hideBranding,
+      quizShowMode: DEFAULT_SETTINGS.quizShowMode,
     })
   }, [store])
 
@@ -195,7 +242,7 @@ function App() {
   }, [])
 
   useKeyboardShortcuts({
-    onSpin: handleSpin,
+    onSpin: handlePrimaryAction,
     onToggleFullscreen: toggleFullscreen,
     onToggleMute: handleToggleMute,
     onExitFullscreen: handleExitFullscreen,
@@ -217,12 +264,15 @@ function App() {
   const sidebarScrollShadowColor = store.settings.backgroundImage ? 'rgba(0,0,0,0.55)' : activeTheme.background
   const sidebarScrollStyle = { '--spinly-scroll-shadow': sidebarScrollShadowColor } as CSSProperties
 
-  const wheelHint =
-    store.entries.length < 2
-      ? 'Add at least two names to spin'
-      : isSpinning
-        ? 'Spinning…'
-        : 'Click the wheel — or press Space'
+  const wheelHint = quiz.podiumRunning
+    ? ''
+    : quiz.displayPhase === 'finalists'
+      ? 'Click the cards — or press Space — to reveal the podium'
+      : store.entries.length < 2
+        ? 'Add at least two names to spin'
+        : isSpinning
+          ? 'Spinning…'
+          : 'Click the wheel — or press Space'
 
   return (
     <div className="flex min-h-dvh flex-col text-white" style={pageStyle}>
@@ -280,18 +330,33 @@ function App() {
             ) : (
               <h2 className="sr-only">Spinly wheel</h2>
             )}
-            <WheelCanvas
-              ref={wheelRef}
-              entries={store.entries}
-              colors={activeColors}
-              pointerColor={activeTheme.pointerColor}
-              labelColor={activeTheme.labelColor}
-              centerImageUrl={store.settings.centerLogo}
-              labelFontScale={store.settings.labelFontScale}
-              onActivate={handleSpin}
-              disabled={store.entries.length < 2 || isSpinning}
-            />
+            {quiz.podiumRunning ? (
+              <PodiumChoreography
+                finalists={store.entries}
+                onComplete={quiz.handlePodiumComplete}
+                playDrumroll={playDrumroll}
+                playFanfare={playFanfare}
+                fireConfetti={fireWinnerConfetti}
+              />
+            ) : quiz.displayPhase === 'finalists' ? (
+              <FinalistCards finalists={store.entries} onActivate={handlePrimaryAction} disabled={isSpinning} />
+            ) : (
+              <WheelCanvas
+                ref={wheelRef}
+                entries={store.entries}
+                colors={activeColors}
+                pointerColor={activeTheme.pointerColor}
+                labelColor={activeTheme.labelColor}
+                centerImageUrl={store.settings.centerLogo}
+                labelFontScale={store.settings.labelFontScale}
+                onActivate={handlePrimaryAction}
+                disabled={store.entries.length < 2 || isSpinning || !!quiz.rankReveal}
+              />
+            )}
             <p className="text-xs text-neutral-400">{wheelHint}</p>
+            {!isFullscreen && quiz.displayPhase === 'elimination' && store.quizShowRun.active && (
+              <LiveStandingsPanel placements={store.quizShowRun.placements} />
+            )}
           </div>
 
           {!isFullscreen && (
@@ -300,20 +365,20 @@ function App() {
               style={sidebarScrollStyle}
             >
               <div className="flex flex-col gap-3">
-                <EntryInput onAdd={store.addEntries} disabled={isSpinning} />
-                <AddFromImagesButton onAdd={store.addEntriesWithImages} disabled={isSpinning} />
+                <EntryInput onAdd={store.addEntries} disabled={isSpinning || quiz.isLocked} />
+                <AddFromImagesButton onAdd={store.addEntriesWithImages} disabled={isSpinning || quiz.isLocked} />
                 <EntryToolbar
                   onShuffle={store.shuffleEntries}
                   onSortAZ={store.sortEntriesAZ}
                   onClearAll={handleClearAll}
-                  disabled={isSpinning}
+                  disabled={isSpinning || quiz.isLocked}
                   hasEntries={store.entries.length > 0}
                 />
                 <EntryList
                   entries={store.entries}
                   onUpdateEntry={store.updateEntry}
                   onRemoveEntry={handleRemoveEntry}
-                  disabled={isSpinning}
+                  disabled={isSpinning || quiz.isLocked}
                 />
                 {store.storageError && <p className="text-sm text-amber-400">{store.storageError}</p>}
               </div>
@@ -356,6 +421,14 @@ function App() {
       )}
 
       <WinnerModal winner={winner} onClose={handleCloseWinner} onRemoveAndClose={handleRemoveAndClose} />
+      <RankRevealModal reveal={quiz.rankReveal} onContinue={quiz.handleContinueRankReveal} />
+      {quiz.displayPhase === 'results' && !quiz.podiumRunning && (
+        <QuizShowResults
+          placements={store.quizShowRun.placements}
+          onPlayAgain={quiz.handlePlayAgain}
+          onClose={quiz.handleCloseResults}
+        />
+      )}
 
       <SettingsDrawer open={isSettingsOpen} onClose={handleCloseSettings}>
         <SettingsPanel
@@ -363,6 +436,7 @@ function App() {
           onUpdateSettings={store.updateSettings}
           onDurationChange={handleDurationChange}
           onResetDefaults={handleResetDefaults}
+          quizShowModeDisabled={store.entries.length < 3 || quiz.isLocked}
         />
       </SettingsDrawer>
 
