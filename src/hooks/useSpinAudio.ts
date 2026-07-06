@@ -1,21 +1,49 @@
 import { useCallback, useRef } from 'react'
 
-export type FanfareIntensity = 'normal' | 'big' | 'huge'
+export type PodiumRevealTier = 'third' | 'second' | 'first'
 
-const FANFARE_NOTES: Record<FanfareIntensity, number[]> = {
-  normal: [523.25, 659.25, 783.99, 1046.5],
-  big: [523.25, 659.25, 783.99, 1046.5, 1318.51],
-  huge: [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98, 2093.0],
+const FANFARE_NOTES = [523.25, 659.25, 783.99, 1046.5]
+const FANFARE_PEAK_GAIN = 0.25
+
+// Each podium reveal is a short ascending "ta-da": a few staccato notes
+// building tension, then a sustained (optionally chorded) note landing on
+// it — escalating in note-count, richness, gain, and duration from 3rd to
+// 1st so 1st place reads as the unmistakable climax.
+interface RevealNote {
+  freq: number
+  start: number
+  duration: number
+  gain: number
 }
 
-const FANFARE_PEAK_GAIN: Record<FanfareIntensity, number> = {
-  normal: 0.25,
-  big: 0.3,
-  huge: 0.35,
+const PODIUM_REVEAL_NOTES: Record<PodiumRevealTier, RevealNote[]> = {
+  third: [
+    { freq: 587.33, start: 0, duration: 0.1, gain: 0.24 },
+    { freq: 698.46, start: 0.11, duration: 0.1, gain: 0.24 },
+    { freq: 880.0, start: 0.24, duration: 0.42, gain: 0.3 },
+  ],
+  second: [
+    { freq: 659.25, start: 0, duration: 0.09, gain: 0.26 },
+    { freq: 783.99, start: 0.1, duration: 0.09, gain: 0.26 },
+    { freq: 987.77, start: 0.2, duration: 0.09, gain: 0.28 },
+    { freq: 1174.66, start: 0.32, duration: 0.5, gain: 0.33 },
+    { freq: 880.0, start: 0.32, duration: 0.5, gain: 0.2 },
+  ],
+  first: [
+    { freq: 783.99, start: 0, duration: 0.08, gain: 0.28 },
+    { freq: 987.77, start: 0.09, duration: 0.08, gain: 0.28 },
+    { freq: 1174.66, start: 0.18, duration: 0.08, gain: 0.3 },
+    { freq: 1567.98, start: 0.27, duration: 0.08, gain: 0.32 },
+    { freq: 1567.98, start: 0.4, duration: 0.7, gain: 0.36 },
+    { freq: 1975.53, start: 0.4, duration: 0.7, gain: 0.28 },
+    { freq: 2349.32, start: 0.4, duration: 0.7, gain: 0.22 },
+    { freq: 392.0, start: 0.4, duration: 0.7, gain: 0.18 },
+  ],
 }
 
 export function useSpinAudio(muted: boolean) {
   const ctxRef = useRef<AudioContext | null>(null)
+  const noiseBufferRef = useRef<AudioBuffer | null>(null)
   const mutedRef = useRef(muted)
   mutedRef.current = muted
 
@@ -73,46 +101,53 @@ export function useSpinAudio(muted: boolean) {
     }
   }, [getContext])
 
-  const playFanfare = useCallback(
-    (intensity: FanfareIntensity = 'normal') => {
-      if (mutedRef.current) return
-      const ctx = getContext()
-      if (!ctx) return
+  const playFanfare = useCallback(() => {
+    if (mutedRef.current) return
+    const ctx = getContext()
+    if (!ctx) return
 
-      const start = () => {
-        const now = ctx.currentTime
-        const notes = FANFARE_NOTES[intensity]
-        const peakGain = FANFARE_PEAK_GAIN[intensity]
-        const noteDuration = 0.055
+    const start = () => {
+      const now = ctx.currentTime
+      const noteDuration = 0.055
 
-        notes.forEach((frequency, i) => {
-          const noteStart = now + i * noteDuration
-          const oscillator = ctx.createOscillator()
-          const gain = ctx.createGain()
+      FANFARE_NOTES.forEach((frequency, i) => {
+        const noteStart = now + i * noteDuration
+        const oscillator = ctx.createOscillator()
+        const gain = ctx.createGain()
 
-          oscillator.type = 'triangle'
-          oscillator.frequency.setValueAtTime(frequency, noteStart)
+        oscillator.type = 'triangle'
+        oscillator.frequency.setValueAtTime(frequency, noteStart)
 
-          gain.gain.setValueAtTime(0.0001, noteStart)
-          gain.gain.exponentialRampToValueAtTime(peakGain, noteStart + 0.015)
-          gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + noteDuration)
+        gain.gain.setValueAtTime(0.0001, noteStart)
+        gain.gain.exponentialRampToValueAtTime(FANFARE_PEAK_GAIN, noteStart + 0.015)
+        gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + noteDuration)
 
-          oscillator.connect(gain)
-          gain.connect(ctx.destination)
+        oscillator.connect(gain)
+        gain.connect(ctx.destination)
 
-          oscillator.start(noteStart)
-          oscillator.stop(noteStart + noteDuration + 0.02)
-        })
-      }
+        oscillator.start(noteStart)
+        oscillator.stop(noteStart + noteDuration + 0.02)
+      })
+    }
 
-      if (ctx.state === 'suspended') {
-        ctx.resume().then(start)
-      } else {
-        start()
-      }
-    },
-    [getContext],
-  )
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(start)
+    } else {
+      start()
+    }
+  }, [getContext])
+
+  const getNoiseBuffer = useCallback((ctx: AudioContext): AudioBuffer => {
+    if (noiseBufferRef.current) return noiseBufferRef.current
+    const duration = 0.1
+    const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * duration), ctx.sampleRate)
+    const data = buffer.getChannelData(0)
+    for (let i = 0; i < data.length; i++) {
+      data[i] = Math.random() * 2 - 1
+    }
+    noiseBufferRef.current = buffer
+    return buffer
+  }, [])
 
   // A single soft confirmation tone for each elimination-phase rank reveal —
   // deliberately not a reuse of playTick (the wheel's in-flight spinning-tick
@@ -149,53 +184,112 @@ export function useSpinAudio(muted: boolean) {
   }, [getContext])
 
   // Suspense/rising-tension sound for the podium choreography's shuffle
-  // phase — a rhythmic sequence of brief percussive bursts at accelerating
+  // phase — a rhythmic sequence of percussive hits at accelerating
   // intervals, all scheduled up front against ctx.currentTime offsets (same
-  // idiom as playFanfare's note scheduling), no setInterval needed.
-  const playDrumroll = useCallback(() => {
-    if (mutedRef.current) return
-    const ctx = getContext()
-    if (!ctx) return
+  // idiom as playFanfare's note scheduling), no setInterval needed. Each hit
+  // pairs a pitch-dropping low "thump" (for body/weight) with a filtered
+  // noise "crack" (for the snare-like texture a single tone can't give) —
+  // a bare oscillator tick alone read as too thin/quiet to register as a
+  // drum roll.
+  const playDrumroll = useCallback(
+    (durationSeconds = 2.2) => {
+      if (mutedRef.current) return
+      const ctx = getContext()
+      if (!ctx) return
 
-    const start = () => {
-      const now = ctx.currentTime
-      const totalDuration = 2.2
-      const startInterval = 0.18
-      const endInterval = 0.04
-      const onsets: number[] = []
-      let elapsed = 0
-      while (elapsed < totalDuration) {
-        onsets.push(elapsed)
-        const progress = elapsed / totalDuration
-        elapsed += startInterval + (endInterval - startInterval) * progress
+      const start = () => {
+        const now = ctx.currentTime
+        const startInterval = 0.2
+        const endInterval = 0.045
+        const noiseBuffer = getNoiseBuffer(ctx)
+        const onsets: number[] = []
+        let elapsed = 0
+        while (elapsed < durationSeconds) {
+          onsets.push(elapsed)
+          const progress = elapsed / durationSeconds
+          elapsed += startInterval + (endInterval - startInterval) * progress
+        }
+
+        onsets.forEach((offset, i) => {
+          const hitStart = now + offset
+          const intensity = 0.7 + 0.3 * (i / Math.max(1, onsets.length - 1))
+
+          const thumpOsc = ctx.createOscillator()
+          const thumpGain = ctx.createGain()
+          thumpOsc.type = 'sine'
+          thumpOsc.frequency.setValueAtTime(160, hitStart)
+          thumpOsc.frequency.exponentialRampToValueAtTime(55, hitStart + 0.07)
+          thumpGain.gain.setValueAtTime(0.0001, hitStart)
+          thumpGain.gain.exponentialRampToValueAtTime(0.4 * intensity, hitStart + 0.006)
+          thumpGain.gain.exponentialRampToValueAtTime(0.0001, hitStart + 0.09)
+          thumpOsc.connect(thumpGain)
+          thumpGain.connect(ctx.destination)
+          thumpOsc.start(hitStart)
+          thumpOsc.stop(hitStart + 0.1)
+
+          const noiseSource = ctx.createBufferSource()
+          noiseSource.buffer = noiseBuffer
+          const noiseFilter = ctx.createBiquadFilter()
+          noiseFilter.type = 'bandpass'
+          noiseFilter.frequency.setValueAtTime(2200, hitStart)
+          noiseFilter.Q.value = 0.8
+          const noiseGain = ctx.createGain()
+          noiseGain.gain.setValueAtTime(0.0001, hitStart)
+          noiseGain.gain.exponentialRampToValueAtTime(0.28 * intensity, hitStart + 0.004)
+          noiseGain.gain.exponentialRampToValueAtTime(0.0001, hitStart + 0.045)
+          noiseSource.connect(noiseFilter)
+          noiseFilter.connect(noiseGain)
+          noiseGain.connect(ctx.destination)
+          noiseSource.start(hitStart)
+          noiseSource.stop(hitStart + 0.05)
+        })
       }
 
-      onsets.forEach((offset) => {
-        const hitStart = now + offset
-        const oscillator = ctx.createOscillator()
-        const gain = ctx.createGain()
+      if (ctx.state === 'suspended') {
+        ctx.resume().then(start)
+      } else {
+        start()
+      }
+    },
+    [getContext, getNoiseBuffer],
+  )
 
-        oscillator.type = 'square'
-        oscillator.frequency.setValueAtTime(120, hitStart)
+  const playPodiumReveal = useCallback(
+    (tier: PodiumRevealTier) => {
+      if (mutedRef.current) return
+      const ctx = getContext()
+      if (!ctx) return
 
-        gain.gain.setValueAtTime(0.0001, hitStart)
-        gain.gain.exponentialRampToValueAtTime(0.15, hitStart + 0.003)
-        gain.gain.exponentialRampToValueAtTime(0.0001, hitStart + 0.03)
+      const start = () => {
+        const now = ctx.currentTime
+        PODIUM_REVEAL_NOTES[tier].forEach(({ freq, start: offset, duration, gain: peakGain }) => {
+          const noteStart = now + offset
+          const oscillator = ctx.createOscillator()
+          const gain = ctx.createGain()
 
-        oscillator.connect(gain)
-        gain.connect(ctx.destination)
+          oscillator.type = 'triangle'
+          oscillator.frequency.setValueAtTime(freq, noteStart)
 
-        oscillator.start(hitStart)
-        oscillator.stop(hitStart + 0.04)
-      })
-    }
+          gain.gain.setValueAtTime(0.0001, noteStart)
+          gain.gain.exponentialRampToValueAtTime(peakGain, noteStart + 0.02)
+          gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + duration)
 
-    if (ctx.state === 'suspended') {
-      ctx.resume().then(start)
-    } else {
-      start()
-    }
-  }, [getContext])
+          oscillator.connect(gain)
+          gain.connect(ctx.destination)
 
-  return { playTick, playFanfare, playChime, playDrumroll, primeAudio }
+          oscillator.start(noteStart)
+          oscillator.stop(noteStart + duration + 0.03)
+        })
+      }
+
+      if (ctx.state === 'suspended') {
+        ctx.resume().then(start)
+      } else {
+        start()
+      }
+    },
+    [getContext],
+  )
+
+  return { playTick, playFanfare, playChime, playDrumroll, playPodiumReveal, primeAudio }
 }

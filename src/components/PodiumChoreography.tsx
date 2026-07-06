@@ -2,14 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Entry, QuizShowPlacement } from '../types'
 import { pickWinnerIndex } from '../lib/wheelMath'
 import { PODIUM_COLORS } from '../lib/podiumTheme'
-import type { FanfareIntensity } from '../hooks/useSpinAudio'
+import type { PodiumRevealTier } from '../hooks/useSpinAudio'
 import type { ConfettiIntensity } from '../lib/confetti'
 
 interface PodiumChoreographyProps {
   finalists: Entry[]
   onComplete: (placements: [QuizShowPlacement, QuizShowPlacement, QuizShowPlacement]) => void
-  playDrumroll: () => void
-  playFanfare: (intensity?: FanfareIntensity) => void
+  playDrumroll: (durationSeconds?: number) => void
+  playPodiumReveal: (tier: PodiumRevealTier) => void
   fireConfetti: (intensity?: ConfettiIntensity) => void
 }
 
@@ -33,16 +33,16 @@ function drawPodiumOrder(finalists: Entry[]): [QuizShowPlacement, QuizShowPlacem
   return [toPlacement(third, 3), toPlacement(second, 2), toPlacement(first, 1)]
 }
 
-const SHUFFLE_MS = 2200
+const SHUFFLE_MS = 3200
 const REDUCED_SHUFFLE_MS = 300
-const BEAT_MS = 1400
+const BEAT_MS = 1800
 const REDUCED_BEAT_MS = 700
 
 export default function PodiumChoreography({
   finalists,
   onComplete,
   playDrumroll,
-  playFanfare,
+  playPodiumReveal,
   fireConfetti,
 }: PodiumChoreographyProps) {
   const prefersReducedMotion = useMemo(
@@ -59,30 +59,30 @@ export default function PodiumChoreography({
 
   const onCompleteRef = useRef(onComplete)
   onCompleteRef.current = onComplete
-  const audioRef = useRef({ playDrumroll, playFanfare, fireConfetti })
-  audioRef.current = { playDrumroll, playFanfare, fireConfetti }
+  const audioRef = useRef({ playDrumroll, playPodiumReveal, fireConfetti })
+  audioRef.current = { playDrumroll, playPodiumReveal, fireConfetti }
 
   useEffect(() => {
     const shuffleMs = prefersReducedMotion ? REDUCED_SHUFFLE_MS : SHUFFLE_MS
     const beatMs = prefersReducedMotion ? REDUCED_BEAT_MS : BEAT_MS
 
-    audioRef.current.playDrumroll()
+    audioRef.current.playDrumroll(shuffleMs / 1000)
 
     const timeouts = [
       window.setTimeout(() => setShuffleDone(true), shuffleMs),
       window.setTimeout(() => {
         setRevealedThird(true)
-        audioRef.current.playFanfare('big')
+        audioRef.current.playPodiumReveal('third')
         audioRef.current.fireConfetti('big')
       }, shuffleMs),
       window.setTimeout(() => {
         setRevealedSecond(true)
-        audioRef.current.playFanfare('big')
+        audioRef.current.playPodiumReveal('second')
         audioRef.current.fireConfetti('big')
       }, shuffleMs + beatMs),
       window.setTimeout(() => {
         setRevealedFirst(true)
-        audioRef.current.playFanfare('huge')
+        audioRef.current.playPodiumReveal('first')
         audioRef.current.fireConfetti('huge')
       }, shuffleMs + beatMs * 2),
       window.setTimeout(() => {

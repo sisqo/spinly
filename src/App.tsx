@@ -47,7 +47,9 @@ function App() {
     [],
   )
 
-  const { playTick, playFanfare, playChime, playDrumroll, primeAudio } = useSpinAudio(store.settings.muted)
+  const { playTick, playFanfare, playChime, playDrumroll, playPodiumReveal, primeAudio } = useSpinAudio(
+    store.settings.muted,
+  )
   const { isFullscreen, toggleFullscreen } = useFullscreen()
 
   const draw = useCallback((rotation: number) => {
@@ -141,8 +143,6 @@ function App() {
     isSpinning,
     showRemovedToast,
     playChime,
-    playDrumroll,
-    playFanfare,
     fireConfetti: fireWinnerConfetti,
   })
 
@@ -335,7 +335,7 @@ function App() {
                 finalists={store.entries}
                 onComplete={quiz.handlePodiumComplete}
                 playDrumroll={playDrumroll}
-                playFanfare={playFanfare}
+                playPodiumReveal={playPodiumReveal}
                 fireConfetti={fireWinnerConfetti}
               />
             ) : quiz.displayPhase === 'finalists' ? (

@@ -2,7 +2,6 @@ import { useCallback, useState } from 'react'
 import type { Entry, QuizShowPhase, QuizShowPlacement } from '../types'
 import type { useSpinlyStore } from './useSpinlyStore'
 import type { ConfettiIntensity } from '../lib/confetti'
-import type { FanfareIntensity } from './useSpinAudio'
 
 type Store = ReturnType<typeof useSpinlyStore>
 
@@ -18,8 +17,6 @@ interface UseQuizShowParams {
   isSpinning: boolean
   showRemovedToast: (name: string) => void
   playChime: () => void
-  playDrumroll: () => void
-  playFanfare: (intensity?: FanfareIntensity) => void
   fireConfetti: (intensity?: ConfettiIntensity) => void
 }
 
