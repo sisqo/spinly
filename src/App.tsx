@@ -11,6 +11,7 @@ import LiveStandingsPanel from './components/LiveStandingsPanel'
 import FinalistCards from './components/FinalistCards'
 import PodiumChoreography from './components/PodiumChoreography'
 import QuizShowResults from './components/QuizShowResults'
+import QuizShowInfoModal from './components/QuizShowInfoModal'
 import SettingsDrawer from './components/SettingsDrawer'
 import SettingsPanel from './components/SettingsPanel'
 import IntroAnimation from './components/IntroAnimation'
@@ -43,12 +44,14 @@ function App() {
     () => typeof window !== 'undefined' && sessionStorage.getItem(INTRO_SESSION_KEY) !== '1',
   )
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
+  const [showQuizShowInfo, setShowQuizShowInfo] = useState(false)
+  const wasQuizShowModeOnRef = useRef(false)
   const prefersReducedMotion = useMemo(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     [],
   )
 
-  const { playTick, playFanfare, playChime, playDrumroll, playPodiumReveal, primeAudio } = useSpinAudio(
+  const { playTick, playFanfare, playChime, playDrumroll, playPodiumReveal, playVictoryFanfare, primeAudio } = useSpinAudio(
     store.settings.muted,
   )
   const { isFullscreen, toggleFullscreen } = useFullscreen()
@@ -78,6 +81,17 @@ function App() {
     isSpinning,
     rotation,
   ])
+
+  useEffect(() => {
+    if (!wasQuizShowModeOnRef.current && store.settings.quizShowMode) {
+      setShowQuizShowInfo(true)
+    }
+    wasQuizShowModeOnRef.current = store.settings.quizShowMode
+  }, [store.settings.quizShowMode])
+
+  const handleCloseQuizShowInfo = useCallback(() => {
+    setShowQuizShowInfo(false)
+  }, [])
 
   const handleSpin = useCallback(async () => {
     if (showIntro || winner || isSpinning || store.entries.length < 2) return
@@ -341,6 +355,7 @@ function App() {
                 onComplete={quiz.handlePodiumComplete}
                 playDrumroll={playDrumroll}
                 playPodiumReveal={playPodiumReveal}
+                playVictoryFanfare={playVictoryFanfare}
                 fireConfetti={fireWinnerConfetti}
               />
             ) : quiz.displayPhase === 'finalists' ? (
@@ -428,6 +443,7 @@ function App() {
 
       <WinnerModal winner={winner} onClose={handleCloseWinner} onRemoveAndClose={handleRemoveAndClose} />
       <RankRevealModal reveal={quiz.rankReveal} onContinue={quiz.handleContinueRankReveal} />
+      <QuizShowInfoModal open={showQuizShowInfo} onClose={handleCloseQuizShowInfo} />
       {quiz.displayPhase === 'results' && !quiz.podiumRunning && (
         <QuizShowResults
           placements={store.quizShowRun.placements}

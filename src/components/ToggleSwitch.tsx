@@ -28,7 +28,7 @@ export default function ToggleSwitch({ checked, onChange, label, id, disabled = 
         }`}
       >
         <span
-          className={`absolute top-0.5 h-4 w-4 rounded-full ${checked ? 'bg-neutral-900' : 'bg-neutral-400'} ${
+          className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full ${checked ? 'bg-neutral-900' : 'bg-neutral-400'} ${
             prefersReducedMotion ? '' : 'transition-transform ease-out'
           } ${checked ? 'translate-x-[1.375rem]' : 'translate-x-0.5'}`}
         />

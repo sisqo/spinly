@@ -10,6 +10,7 @@ interface PodiumChoreographyProps {
   onComplete: (placements: [QuizShowPlacement, QuizShowPlacement, QuizShowPlacement]) => void
   playDrumroll: (durationSeconds?: number) => void
   playPodiumReveal: (tier: PodiumRevealTier) => void
+  playVictoryFanfare: () => void
   fireConfetti: (intensity?: ConfettiIntensity) => void
 }
 
@@ -37,12 +38,20 @@ const SHUFFLE_MS = 3200
 const REDUCED_SHUFFLE_MS = 300
 const BEAT_MS = 1800
 const REDUCED_BEAT_MS = 700
+// The gap between the 1st-place reveal and onComplete — longer than a
+// regular BEAT so the victory fanfare (triggered partway through it) has
+// room to finish before the podium hands off to the results screen.
+const FINALE_MS = 2800
+const REDUCED_FINALE_MS = 2200
+const VICTORY_FANFARE_DELAY_MS = 500
+const REDUCED_VICTORY_FANFARE_DELAY_MS = 300
 
 export default function PodiumChoreography({
   finalists,
   onComplete,
   playDrumroll,
   playPodiumReveal,
+  playVictoryFanfare,
   fireConfetti,
 }: PodiumChoreographyProps) {
   const prefersReducedMotion = useMemo(
@@ -59,12 +68,15 @@ export default function PodiumChoreography({
 
   const onCompleteRef = useRef(onComplete)
   onCompleteRef.current = onComplete
-  const audioRef = useRef({ playDrumroll, playPodiumReveal, fireConfetti })
-  audioRef.current = { playDrumroll, playPodiumReveal, fireConfetti }
+  const audioRef = useRef({ playDrumroll, playPodiumReveal, playVictoryFanfare, fireConfetti })
+  audioRef.current = { playDrumroll, playPodiumReveal, playVictoryFanfare, fireConfetti }
 
   useEffect(() => {
     const shuffleMs = prefersReducedMotion ? REDUCED_SHUFFLE_MS : SHUFFLE_MS
     const beatMs = prefersReducedMotion ? REDUCED_BEAT_MS : BEAT_MS
+    const finaleMs = prefersReducedMotion ? REDUCED_FINALE_MS : FINALE_MS
+    const victoryFanfareDelayMs = prefersReducedMotion ? REDUCED_VICTORY_FANFARE_DELAY_MS : VICTORY_FANFARE_DELAY_MS
+    const firstRevealAt = shuffleMs + beatMs * 2
 
     audioRef.current.playDrumroll(shuffleMs / 1000)
 
@@ -84,10 +96,13 @@ export default function PodiumChoreography({
         setRevealedFirst(true)
         audioRef.current.playPodiumReveal('first')
         audioRef.current.fireConfetti('huge')
-      }, shuffleMs + beatMs * 2),
+      }, firstRevealAt),
+      window.setTimeout(() => {
+        audioRef.current.playVictoryFanfare()
+      }, firstRevealAt + victoryFanfareDelayMs),
       window.setTimeout(() => {
         onCompleteRef.current(placements)
-      }, shuffleMs + beatMs * 3),
+      }, firstRevealAt + finaleMs),
     ]
 
     return () => timeouts.forEach((id) => window.clearTimeout(id))

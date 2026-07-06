@@ -41,6 +41,22 @@ const PODIUM_REVEAL_NOTES: Record<PodiumRevealTier, RevealNote[]> = {
   ],
 }
 
+// A short two-phrase victory jingle that follows the 1st-place "ta-da" as a
+// grand-finale capstone — longer and more melodic than any single reveal
+// sting, landing on a held triumphant chord.
+const VICTORY_FANFARE_NOTES: RevealNote[] = [
+  { freq: 523.25, start: 0, duration: 0.12, gain: 0.28 },
+  { freq: 659.25, start: 0.12, duration: 0.12, gain: 0.28 },
+  { freq: 783.99, start: 0.24, duration: 0.12, gain: 0.3 },
+  { freq: 1046.5, start: 0.36, duration: 0.22, gain: 0.34 },
+  { freq: 783.99, start: 0.62, duration: 0.12, gain: 0.3 },
+  { freq: 1046.5, start: 0.74, duration: 0.12, gain: 0.32 },
+  { freq: 1318.51, start: 0.86, duration: 0.12, gain: 0.34 },
+  { freq: 1567.98, start: 0.98, duration: 0.85, gain: 0.38 },
+  { freq: 2093.0, start: 0.98, duration: 0.85, gain: 0.3 },
+  { freq: 1046.5, start: 0.98, duration: 0.85, gain: 0.22 },
+]
+
 export function useSpinAudio(muted: boolean) {
   const ctxRef = useRef<AudioContext | null>(null)
   const noiseBufferRef = useRef<AudioBuffer | null>(null)
@@ -254,33 +270,35 @@ export function useSpinAudio(muted: boolean) {
     [getContext, getNoiseBuffer],
   )
 
+  const scheduleNotes = useCallback((ctx: AudioContext, notes: RevealNote[]) => {
+    const now = ctx.currentTime
+    notes.forEach(({ freq, start: offset, duration, gain: peakGain }) => {
+      const noteStart = now + offset
+      const oscillator = ctx.createOscillator()
+      const gain = ctx.createGain()
+
+      oscillator.type = 'triangle'
+      oscillator.frequency.setValueAtTime(freq, noteStart)
+
+      gain.gain.setValueAtTime(0.0001, noteStart)
+      gain.gain.exponentialRampToValueAtTime(peakGain, noteStart + 0.02)
+      gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + duration)
+
+      oscillator.connect(gain)
+      gain.connect(ctx.destination)
+
+      oscillator.start(noteStart)
+      oscillator.stop(noteStart + duration + 0.03)
+    })
+  }, [])
+
   const playPodiumReveal = useCallback(
     (tier: PodiumRevealTier) => {
       if (mutedRef.current) return
       const ctx = getContext()
       if (!ctx) return
 
-      const start = () => {
-        const now = ctx.currentTime
-        PODIUM_REVEAL_NOTES[tier].forEach(({ freq, start: offset, duration, gain: peakGain }) => {
-          const noteStart = now + offset
-          const oscillator = ctx.createOscillator()
-          const gain = ctx.createGain()
-
-          oscillator.type = 'triangle'
-          oscillator.frequency.setValueAtTime(freq, noteStart)
-
-          gain.gain.setValueAtTime(0.0001, noteStart)
-          gain.gain.exponentialRampToValueAtTime(peakGain, noteStart + 0.02)
-          gain.gain.exponentialRampToValueAtTime(0.0001, noteStart + duration)
-
-          oscillator.connect(gain)
-          gain.connect(ctx.destination)
-
-          oscillator.start(noteStart)
-          oscillator.stop(noteStart + duration + 0.03)
-        })
-      }
+      const start = () => scheduleNotes(ctx, PODIUM_REVEAL_NOTES[tier])
 
       if (ctx.state === 'suspended') {
         ctx.resume().then(start)
@@ -288,8 +306,32 @@ export function useSpinAudio(muted: boolean) {
         start()
       }
     },
-    [getContext],
+    [getContext, scheduleNotes],
   )
 
-  return { playTick, playFanfare, playChime, playDrumroll, playPodiumReveal, primeAudio }
+  // Grand-finale capstone played a beat after the 1st-place reveal sting —
+  // a longer, more melodic tune distinct from any single reveal's "ta-da".
+  const playVictoryFanfare = useCallback(() => {
+    if (mutedRef.current) return
+    const ctx = getContext()
+    if (!ctx) return
+
+    const start = () => scheduleNotes(ctx, VICTORY_FANFARE_NOTES)
+
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(start)
+    } else {
+      start()
+    }
+  }, [getContext, scheduleNotes])
+
+  return {
+    playTick,
+    playFanfare,
+    playChime,
+    playDrumroll,
+    playPodiumReveal,
+    playVictoryFanfare,
+    primeAudio,
+  }
 }
