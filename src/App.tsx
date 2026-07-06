@@ -343,6 +343,14 @@ function App() {
                 SisQo
               </a>
             </p>
+            <a
+              href={`https://github.com/sisqo/spinly/commit/${__COMMIT_HASH__}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-mono text-xs text-neutral-600 transition-colors hover:text-neutral-400"
+            >
+              {__COMMIT_HASH__}
+            </a>
           </footer>
         </div>
       )}
