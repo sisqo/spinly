@@ -113,14 +113,27 @@ function App() {
     removedToastTimeoutRef.current = window.setTimeout(() => setRemovedToast(null), REMOVED_TOAST_MS)
   }, [clearRemovedToastTimeout])
 
-  const handleRemoveAndClose = useCallback(() => {
-    if (winner) {
-      store.removeWinnerEntry(winner)
-      setRemovedToast({ name: winner.name })
+  const removeEntryWithToast = useCallback(
+    (entry: Entry) => {
+      store.removeEntry(entry.id)
+      setRemovedToast({ name: entry.name })
       scheduleRemovedToastDismiss()
-    }
+    },
+    [store, scheduleRemovedToastDismiss],
+  )
+
+  const handleRemoveAndClose = useCallback(() => {
+    if (winner) removeEntryWithToast(winner)
     setWinner(null)
-  }, [winner, store, scheduleRemovedToastDismiss])
+  }, [winner, removeEntryWithToast])
+
+  const handleRemoveEntry = useCallback(
+    (id: string) => {
+      const entry = store.entries.find((e) => e.id === id)
+      if (entry) removeEntryWithToast(entry)
+    },
+    [store.entries, removeEntryWithToast],
+  )
 
   const handleUndoRemove = useCallback(() => {
     clearRemovedToastTimeout()
@@ -299,7 +312,7 @@ function App() {
                 <EntryList
                   entries={store.entries}
                   onUpdateEntry={store.updateEntry}
-                  onRemoveEntry={store.removeEntry}
+                  onRemoveEntry={handleRemoveEntry}
                   disabled={isSpinning}
                 />
                 {store.storageError && <p className="text-sm text-amber-400">{store.storageError}</p>}

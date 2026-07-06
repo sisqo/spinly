@@ -59,19 +59,19 @@ export function useSpinlyStore() {
   }, [])
 
   const removeEntry = useCallback((id: string) => {
-    setState((s) => ({ ...s, entries: s.entries.filter((e) => e.id !== id) }))
+    setState((s) => {
+      const entry = s.entries.find((e) => e.id === id)
+      if (!entry) return s
+      return {
+        ...s,
+        entries: s.entries.filter((e) => e.id !== id),
+        removedEntries: [...s.removedEntries, entry],
+      }
+    })
   }, [])
 
   const clearEntries = useCallback(() => {
     setState((s) => ({ ...s, entries: [] }))
-  }, [])
-
-  const removeWinnerEntry = useCallback((entry: Entry) => {
-    setState((s) => ({
-      ...s,
-      entries: s.entries.filter((e) => e.id !== entry.id),
-      removedEntries: [...s.removedEntries, entry],
-    }))
   }, [])
 
   const restoreLastRemoved = useCallback(() => {
@@ -127,7 +127,6 @@ export function useSpinlyStore() {
     updateEntry,
     removeEntry,
     clearEntries,
-    removeWinnerEntry,
     restoreLastRemoved,
     setEntries,
     shuffleEntries,

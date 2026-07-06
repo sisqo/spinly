@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import ColorSwatch from './ColorSwatch'
 import { THEMES, resolveActiveColors } from '../lib/themes'
 import { cryptoRandom01 } from '../lib/wheelMath'
@@ -31,6 +32,7 @@ function hslToHex(h: number, s: number, l: number): string {
 export default function ThemePanel({ settings, onUpdateSettings }: ThemePanelProps) {
   const isCustom = Array.isArray(settings.customColors) && settings.customColors.length > 0
   const activeColors = resolveActiveColors(settings)
+  const addColorButtonRef = useRef<HTMLButtonElement>(null)
 
   const selectTheme = (themeId: string) => {
     onUpdateSettings({ themeId, customColors: null })
@@ -48,6 +50,13 @@ export default function ThemePanel({ settings, onUpdateSettings }: ThemePanelPro
 
   const removeColor = (index: number) => {
     if (activeColors.length <= MIN_COLORS) return
+    // The remove button that's currently focused (the one whose click/Enter got us
+    // here) is about to unmount once this drops to MIN_COLORS — every swatch loses
+    // its remove button at once. Move focus off it first, or it falls through to
+    // <body> with no visible indicator anywhere.
+    if (activeColors.length - 1 <= MIN_COLORS) {
+      addColorButtonRef.current?.focus()
+    }
     onUpdateSettings({ customColors: activeColors.filter((_, i) => i !== index) })
   }
 
@@ -106,10 +115,11 @@ export default function ThemePanel({ settings, onUpdateSettings }: ThemePanelPro
             />
           ))}
           <button
+            ref={addColorButtonRef}
             type="button"
             onClick={addColor}
             aria-label="Add color"
-            className="flex h-10 w-10 items-center justify-center rounded-lg border border-dashed border-neutral-600 text-neutral-400 hover:border-white hover:text-white"
+            className="flex h-10 w-10 items-center justify-center rounded-lg border border-dashed border-neutral-600 text-neutral-400 hover:border-white hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-white"
           >
             +
           </button>

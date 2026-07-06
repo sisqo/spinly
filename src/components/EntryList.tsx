@@ -69,7 +69,7 @@ export default function EntryList({ entries, onUpdateEntry, onRemoveEntry, disab
     <div className="flex flex-col gap-2">
       <ul className="flex flex-col gap-1">
         {entries.map((entry) => (
-          <li key={entry.id} className="flex items-center gap-2 rounded-lg bg-neutral-900 px-3 py-2">
+          <li key={entry.id} className="flex items-center gap-3 rounded-lg bg-neutral-900 px-3 py-2">
             {entry.image ? (
               <img src={entry.image} alt="" className="h-8 w-8 flex-shrink-0 rounded-full object-cover" />
             ) : (
@@ -106,7 +106,7 @@ export default function EntryList({ entries, onUpdateEntry, onRemoveEntry, disab
               type="button"
               onClick={() => triggerPhotoUpload(entry.id)}
               disabled={disabled}
-              className="flex-shrink-0 text-xs text-neutral-400 hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex-shrink-0 rounded-lg px-2 py-1.5 text-xs text-neutral-400 hover:bg-neutral-800 hover:text-white disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
             >
               Photo
             </button>
@@ -116,7 +116,7 @@ export default function EntryList({ entries, onUpdateEntry, onRemoveEntry, disab
               onClick={() => onRemoveEntry(entry.id)}
               disabled={disabled}
               aria-label={`Remove ${entry.name}`}
-              className="flex-shrink-0 text-red-400/80 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-red-400/90 hover:bg-neutral-800 hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
             >
               ✕
             </button>
