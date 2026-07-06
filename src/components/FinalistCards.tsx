@@ -19,7 +19,7 @@ export default function FinalistCards({ finalists, onActivate, disabled = false 
         {finalists.map((entry) => (
           <div
             key={entry.id}
-            className="flex h-40 w-28 items-center justify-center rounded-3xl bg-gradient-to-b from-neutral-800 to-neutral-900 text-4xl font-bold text-neutral-600 ring-1 ring-white/10 sm:h-52 sm:w-36"
+            className="flex h-40 w-28 items-center justify-center rounded-3xl bg-gradient-to-b from-neutral-800 to-neutral-900 text-4xl font-bold text-neutral-600 ring-1 ring-white/10 sm:h-64 sm:w-44"
           >
             ?
           </div>
