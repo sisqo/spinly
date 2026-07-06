@@ -45,7 +45,7 @@ function App() {
   )
   const [isSettingsOpen, setIsSettingsOpen] = useState(false)
   const [showQuizShowInfo, setShowQuizShowInfo] = useState(false)
-  const wasQuizShowModeOnRef = useRef(false)
+  const wasQuizShowModeOnRef = useRef(store.settings.quizShowMode)
   const prefersReducedMotion = useMemo(
     () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     [],

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Entry, QuizShowPlacement } from '../types'
 import { pickWinnerIndex } from '../lib/wheelMath'
 import { PODIUM_COLORS } from '../lib/podiumTheme'
+import { QUIZ_SHOW_CARD_SIZE_CLASSES } from '../lib/constants'
 import type { PodiumRevealTier } from '../hooks/useSpinAudio'
 import type { ConfettiIntensity } from '../lib/confetti'
 
@@ -124,7 +125,7 @@ export default function PodiumChoreography({
           {[0, 1, 2].map((i) => (
             <div
               key={i}
-              className="flex h-40 w-28 items-center justify-center rounded-3xl bg-gradient-to-b from-neutral-800 to-neutral-900 text-4xl font-bold text-neutral-600 ring-1 ring-white/10 sm:h-64 sm:w-44"
+              className={`flex ${QUIZ_SHOW_CARD_SIZE_CLASSES} items-center justify-center rounded-3xl bg-gradient-to-b from-neutral-800 to-neutral-900 text-5xl font-bold text-neutral-600 ring-1 ring-white/10 sm:text-6xl`}
               style={
                 prefersReducedMotion ? undefined : { animation: `spinly-podium-shuffle 0.6s ease-in-out ${i * 0.15}s infinite` }
               }
@@ -153,40 +154,39 @@ interface PodiumSlotProps {
 
 function PodiumSlot({ rank, placement, revealed, prefersReducedMotion }: PodiumSlotProps) {
   const accentColor = rank === 1 ? PODIUM_COLORS.gold : rank === 2 ? PODIUM_COLORS.silver : PODIUM_COLORS.bronze
-  const heightClass = rank === 1 ? 'h-56 sm:h-64' : rank === 2 ? 'h-44 sm:h-52' : 'h-36 sm:h-44'
   const flipTransitionClass = prefersReducedMotion ? '' : 'transition-transform duration-500'
   const rankLabel = rank === 1 ? '1st' : rank === 2 ? '2nd' : '3rd'
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className={`relative w-28 sm:w-36 ${heightClass} [perspective:1000px]`}>
+      <div className={`relative ${QUIZ_SHOW_CARD_SIZE_CLASSES} [perspective:1000px]`}>
         <div
           className={`relative h-full w-full [transform-style:preserve-3d] ${flipTransitionClass}`}
           style={{ transform: revealed ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
         >
-          <div className="absolute inset-0 flex items-center justify-center rounded-3xl bg-gradient-to-b from-neutral-800 to-neutral-900 text-4xl font-bold text-neutral-600 ring-1 ring-white/10 [backface-visibility:hidden]">
+          <div className="absolute inset-0 flex items-center justify-center rounded-3xl bg-gradient-to-b from-neutral-800 to-neutral-900 text-5xl font-bold text-neutral-600 ring-1 ring-white/10 [backface-visibility:hidden] sm:text-6xl">
             ?
           </div>
           <div
-            className="absolute inset-0 flex flex-col items-center justify-center gap-2 rounded-3xl bg-gradient-to-b from-neutral-900 to-neutral-950 p-3 text-center [backface-visibility:hidden] [transform:rotateY(180deg)]"
+            className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-3xl bg-gradient-to-b from-neutral-900 to-neutral-950 p-4 text-center [backface-visibility:hidden] [transform:rotateY(180deg)]"
             style={{ boxShadow: `0 0 40px ${accentColor}66` }}
           >
             {placement.image ? (
               <img
                 src={placement.image}
                 alt=""
-                className="h-14 w-14 rounded-full object-cover"
+                className="h-16 w-16 rounded-full object-cover sm:h-24 sm:w-24"
                 style={{ boxShadow: `0 0 0 3px ${accentColor}` }}
               />
             ) : (
               <div
-                className="flex h-14 w-14 items-center justify-center rounded-full bg-neutral-800 text-xl font-bold uppercase text-white"
+                className="flex h-16 w-16 items-center justify-center rounded-full bg-neutral-800 text-xl font-bold uppercase text-white sm:h-24 sm:w-24 sm:text-3xl"
                 style={{ boxShadow: `0 0 0 3px ${accentColor}` }}
               >
                 {placement.name.charAt(0) || '?'}
               </div>
             )}
-            <span className="truncate text-sm font-semibold text-white">{placement.name}</span>
+            <span className="truncate text-sm font-semibold text-white sm:text-base">{placement.name}</span>
           </div>
         </div>
       </div>
