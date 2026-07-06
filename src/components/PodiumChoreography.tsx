@@ -46,6 +46,13 @@ const FINALE_MS = 2800
 const REDUCED_FINALE_MS = 2200
 const VICTORY_FANFARE_DELAY_MS = 500
 const REDUCED_VICTORY_FANFARE_DELAY_MS = 300
+// The podium slots (all 3, face-down) only mount once shuffleDone flips
+// true. Flipping revealedThird at that same instant changes the freshly
+// mounted 3rd-place card's transform before the browser ever paints its
+// rotateY(0) starting state, so the flip transition has nothing to
+// interpolate from and just snaps to the end state. A short settle delay
+// guarantees at least one paint of the face-down state first.
+const MOUNT_SETTLE_MS = 80
 
 export default function PodiumChoreography({
   finalists,
@@ -87,7 +94,7 @@ export default function PodiumChoreography({
         setRevealedThird(true)
         audioRef.current.playPodiumReveal('third')
         audioRef.current.fireConfetti('big')
-      }, shuffleMs),
+      }, shuffleMs + MOUNT_SETTLE_MS),
       window.setTimeout(() => {
         setRevealedSecond(true)
         audioRef.current.playPodiumReveal('second')
