@@ -1,11 +1,13 @@
-import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import type { Entry } from '../types'
-import { drawWheel } from '../lib/drawWheel'
+import { computeWheelLayout, drawWheel } from '../lib/drawWheel'
 import { loadImage } from '../lib/imageProcessing'
 
 export interface WheelCanvasHandle {
   draw: (rotation: number) => void
 }
+
+const MAX_DEVICE_PIXEL_RATIO = 2
 
 interface WheelCanvasProps {
   entries: Entry[]
@@ -28,25 +30,39 @@ const WheelCanvas = forwardRef<WheelCanvasHandle, WheelCanvasProps>(function Whe
   const centerImageElRef = useRef<HTMLImageElement | null>(null)
   const avatarCacheRef = useRef<Map<string, HTMLImageElement>>(new Map())
   const [size, setSize] = useState(0)
-  const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1
+  const dpr = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, MAX_DEVICE_PIXEL_RATIO) : 1
 
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
+    let rafId: number | null = null
+    let pendingSize = 0
+
     const observer = new ResizeObserver((entriesList) => {
       const { width, height } = entriesList[0].contentRect
-      setSize(Math.max(0, Math.floor(Math.min(width, height))))
+      pendingSize = Math.max(0, Math.floor(Math.min(width, height)))
+      if (rafId !== null) return
+      rafId = requestAnimationFrame(() => {
+        rafId = null
+        setSize(pendingSize)
+      })
     })
     observer.observe(container)
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+      if (rafId !== null) cancelAnimationFrame(rafId)
+    }
   }, [])
+
+  const layout = useMemo(() => computeWheelLayout({ entries, size, labelFontScale }), [entries, size, labelFontScale])
 
   const renderFrame = useCallback(
     (rotation: number) => {
       lastRotationRef.current = rotation
       const ctx = canvasRef.current?.getContext('2d')
-      if (!ctx || size <= 0) return
+      if (!ctx || size <= 0 || !layout) return
       drawWheel(ctx, {
+        layout,
         entries,
         rotation,
         colors,
@@ -56,10 +72,9 @@ const WheelCanvas = forwardRef<WheelCanvasHandle, WheelCanvasProps>(function Whe
         pixelRatio: dpr,
         centerImage: centerImageElRef.current ?? undefined,
         avatarImages: avatarCacheRef.current,
-        labelFontScale,
       })
     },
-    [entries, colors, pointerColor, labelColor, size, dpr, labelFontScale],
+    [layout, entries, colors, pointerColor, labelColor, size, dpr],
   )
 
   // Always call the latest renderFrame, even from an onload callback whose
@@ -71,7 +86,7 @@ const WheelCanvas = forwardRef<WheelCanvasHandle, WheelCanvasProps>(function Whe
 
   useEffect(() => {
     renderFrameRef.current(lastRotationRef.current)
-  }, [size])
+  }, [size, layout])
 
   useEffect(() => {
     if (!centerImageUrl) {
